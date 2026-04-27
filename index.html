@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="theme-color" content="#0c0c0e"/>
+<meta name="description" content="AI photo editor. Fujifilm filters. On-device. Free forever."/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="PIXORA"/>
+<link rel="manifest" href="/manifest.json"/>
+<title>PIXORA — AI Photo Editor</title>
+<script src="https://cdn.jsdelivr.net/npm/konva@9.3.6/konva.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;1,300&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#0c0c0e;
+  --bg2:#101012;
+  --surface:#161618;
+  --surface2:#1c1c1f;
+  --border:#242428;
+  --border2:#2e2e34;
+  --text:#eeeef0;
+  --muted:#444450;
+  --muted2:#666670;
+  --accent:#e8ff47;
+  --accent-dim:rgba(232,255,71,0.10);
+  --accent2:#ff5c35;
+  --safe-bottom:env(safe-area-inset-bottom, 0px);
+  --toolbar-h:60px;
+  --bottombar-h:68px;
+  --filter-strip-h:112px;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;}
+
+/* ── SPLASH ── */
+#splash{
+  position:fixed;inset:0;background:var(--bg);z-index:1000;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;
+  transition:opacity 0.5s ease, visibility 0.5s ease;
+}
+#splash.hidden{opacity:0;visibility:hidden;}
+.splash-logo{
+  font-family:'Bebas Neue',sans-serif;font-size:clamp(4rem,20vw,7rem);
+  letter-spacing:0.06em;line-height:1;color:var(--text);
+}
+.splash-logo span{color:var(--accent);}
+.splash-tagline{font-size:0.6rem;letter-spacing:0.22em;color:var(--muted2);text-transform:uppercase;}
+.splash-loader{width:100px;height:1.5px;background:var(--border);margin-top:1.25rem;overflow:hidden;}
+.splash-loader-fill{height:100%;background:var(--accent);animation:loadfill 1.8s cubic-bezier(0.4,0,0.2,1) forwards;}
+@keyframes loadfill{from{width:0}to{width:100%}}
+
+/* ── SHELL ── */
+#app{height:100%;display:flex;flex-direction:column;overflow:hidden;}
+
+/* ── TOP BAR ── */
+#topbar{
+  height:var(--toolbar-h);flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 1.1rem;border-bottom:1px solid var(--border);
+  background:var(--bg);position:relative;z-index:10;
+}
+.logo-small{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:0.1em;color:var(--text);line-height:1;}
+.logo-small span{color:var(--accent);}
+.topbar-actions{display:flex;align-items:center;gap:0.4rem;}
+.icon-btn{
+  width:36px;height:36px;border-radius:7px;border:1px solid var(--border);background:var(--surface);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  transition:border-color 0.15s,background 0.15s;color:var(--muted2);font-size:0.9rem;
+}
+.icon-btn:hover,.icon-btn:active{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
+.icon-btn.primary{background:var(--accent);border-color:var(--accent);color:#000;font-size:1rem;}
+.icon-btn.primary:hover{background:#d4eb30;}
+
+/* ── CANVAS AREA ── */
+#canvas-area{
+  flex:1;overflow:hidden;position:relative;background:var(--bg2);
+  display:flex;align-items:center;justify-content:center;
+}
+#konva-container{width:100%;height:100%;}
+
+/* ── UPLOAD STATE ── */
+#upload-state{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:1.25rem;padding:2rem;
+  z-index:5;
+}
+#upload-state.hidden{display:none;}
+.upload-ring{
+  width:100px;height:100px;border-radius:50%;border:1.5px dashed var(--border2);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.4rem;
+  cursor:pointer;transition:border-color 0.2s,background 0.2s;position:relative;
+}
+.upload-ring:hover,.upload-ring.hover{border-color:var(--accent);background:var(--accent-dim);}
+.upload-icon-large{font-size:2rem;}
+.upload-ring-label{font-size:0.5rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted2);}
+.upload-headline{font-family:'Bebas Neue',sans-serif;font-size:1.7rem;letter-spacing:0.05em;color:var(--text);text-align:center;line-height:1.1;}
+.upload-sub{font-size:0.6rem;color:var(--muted);text-align:center;letter-spacing:0.08em;line-height:1.9;}
+.upload-formats{display:flex;gap:0.4rem;flex-wrap:wrap;justify-content:center;}
+.format-chip-small{padding:0.18rem 0.55rem;border-radius:3px;border:1px solid var(--border);font-size:0.58rem;letter-spacing:0.1em;color:var(--muted2);}
+
+/* ── FILTER STRIP ── */
+#filter-strip{
+  flex-shrink:0;height:var(--filter-strip-h);background:var(--bg);
+  border-top:1px solid var(--border);display:none;
+  flex-direction:column;justify-content:flex-end;overflow:hidden;
+}
+#filter-strip.visible{display:flex;}
+.filter-strip-inner{
+  display:flex;gap:0;overflow-x:auto;scrollbar-width:none;
+  padding:0.75rem 1rem 0.75rem;align-items:flex-end;
+}
+.filter-strip-inner::-webkit-scrollbar{display:none;}
+.filter-thumb{
+  flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:0.45rem;
+  cursor:pointer;padding:0 0.55rem;position:relative;
+  transition:opacity 0.15s;
+}
+.filter-thumb:hover{opacity:0.85;}
+.filter-thumb.active .filter-canvas-wrap::after{
+  content:'';position:absolute;inset:0;border-radius:5px;
+  box-shadow:inset 0 0 0 2px var(--accent);pointer-events:none;
+}
+.filter-canvas-wrap{
+  width:56px;height:56px;border-radius:5px;overflow:hidden;
+  position:relative;background:var(--border);
+}
+.filter-canvas-wrap canvas{width:100%;height:100%;display:block;}
+.filter-name{
+  font-size:0.5rem;letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--muted2);white-space:nowrap;transition:color 0.15s;
+}
+.filter-thumb.active .filter-name{color:var(--accent);}
+
+/* ── FORMAT BAR ── */
+#format-bar{
+  flex-shrink:0;background:var(--bg);border-top:1px solid var(--border);
+  padding:0.6rem 1rem;display:none;overflow-x:auto;scrollbar-width:none;
+}
+#format-bar::-webkit-scrollbar{display:none;}
+#format-bar.visible{display:flex;gap:0.4rem;align-items:center;}
+.format-label{font-size:0.56rem;letter-spacing:0.16em;color:var(--muted);text-transform:uppercase;flex-shrink:0;margin-right:0.5rem;}
+.fmt-btn{
+  flex-shrink:0;padding:0.4rem 0.8rem;border-radius:5px;border:1px solid var(--border);
+  background:var(--surface);cursor:pointer;transition:all 0.15s;
+  display:flex;flex-direction:column;align-items:center;gap:0.1rem;min-width:62px;
+}
+.fmt-btn:hover,.fmt-btn.active{border-color:var(--accent);background:var(--accent-dim);}
+.fmt-btn.active .fmt-ratio{color:var(--accent);}
+.fmt-ratio{font-family:'Bebas Neue',sans-serif;font-size:0.95rem;letter-spacing:0.05em;color:var(--text);line-height:1;}
+.fmt-name{font-size:0.52rem;letter-spacing:0.1em;color:var(--muted2);text-transform:uppercase;}
+
+/* ── BOTTOM TOOLBAR ── */
+#bottombar{
+  height:calc(var(--bottombar-h) + var(--safe-bottom));
+  padding-bottom:var(--safe-bottom);
+  flex-shrink:0;background:var(--bg);border-top:1px solid var(--border);
+  display:none;align-items:center;justify-content:space-around;
+  padding-left:0.4rem;padding-right:0.4rem;
+}
+#bottombar.visible{display:flex;}
+.tool-btn{
+  flex:1;height:46px;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:0.22rem;cursor:pointer;border-radius:7px;
+  transition:background 0.15s;color:var(--muted2);border:none;background:transparent;max-width:70px;
+}
+.tool-btn:hover,.tool-btn.active{color:var(--accent);background:var(--accent-dim);}
+.tool-icon{font-size:1.05rem;line-height:1;}
+.tool-label{font-size:0.48rem;letter-spacing:0.12em;text-transform:uppercase;}
+
+/* ── CROP UI ── */
+#crop-confirm-bar{
+  position:absolute;bottom:calc(var(--bottombar-h) + var(--safe-bottom) + 0.75rem);
+  left:50%;transform:translateX(-50%);
+  display:none;gap:0.6rem;z-index:15;
+}
+#crop-confirm-bar.visible{display:flex;}
+.crop-action-btn{
+  padding:0.5rem 1.2rem;border-radius:6px;font-family:'DM Mono',monospace;
+  font-size:0.65rem;letter-spacing:0.1em;cursor:pointer;border:1px solid var(--border2);
+  transition:all 0.15s;
+}
+.crop-action-btn.confirm{background:var(--accent);border-color:var(--accent);color:#000;font-weight:700;}
+.crop-action-btn.confirm:hover{background:#d4eb30;}
+.crop-action-btn.cancel{background:var(--surface);color:var(--muted2);}
+.crop-action-btn.cancel:hover{color:var(--text);border-color:var(--text);}
+
+/* ── ADJ PANEL ── */
+#adj-panel{
+  position:absolute;bottom:0;left:0;right:0;
+  background:var(--surface);border-top:1px solid var(--border);
+  padding:1.1rem 1.1rem calc(1.1rem + var(--safe-bottom));
+  transform:translateY(100%);transition:transform 0.3s cubic-bezier(0.16,1,0.3,1);
+  z-index:20;max-height:55vh;overflow-y:auto;
+}
+#adj-panel.open{transform:translateY(0);}
+.panel-drag{width:36px;height:3.5px;background:var(--border2);border-radius:2px;margin:0 auto 1.1rem;}
+.adj-title{font-size:0.56rem;letter-spacing:0.22em;text-transform:uppercase;color:var(--muted2);margin-bottom:0.9rem;}
+.adj-row{display:flex;flex-direction:column;gap:0.45rem;margin-bottom:1.1rem;}
+.adj-row-header{display:flex;justify-content:space-between;align-items:center;}
+.adj-name{font-size:0.62rem;letter-spacing:0.1em;color:var(--text);text-transform:uppercase;}
+.adj-val{font-size:0.62rem;color:var(--accent);font-variant-numeric:tabular-nums;}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;width:100%;height:2.5px;
+  background:var(--border2);border-radius:2px;outline:none;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:16px;height:16px;border-radius:50%;
+  background:var(--accent);cursor:pointer;border:2px solid var(--bg);
+  box-shadow:0 0 0 1px var(--accent);transition:transform 0.1s;
+}
+input[type=range]::-webkit-slider-thumb:active{transform:scale(1.2);}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid var(--bg);}
+
+/* ── EXPORT PANEL ── */
+#export-panel{
+  position:absolute;inset:0;background:rgba(12,12,14,0.97);
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  gap:1.4rem;padding:2rem;z-index:30;backdrop-filter:blur(10px);
+}
+#export-panel.open{display:flex;}
+.export-title{font-family:'Bebas Neue',sans-serif;font-size:1.9rem;letter-spacing:0.06em;text-align:center;}
+.export-preview-wrap{width:100%;max-width:300px;border-radius:8px;overflow:hidden;border:1px solid var(--border2);position:relative;}
+.export-preview-wrap img{width:100%;display:block;}
+.export-badge{position:absolute;top:0.55rem;right:0.55rem;background:rgba(12,12,14,0.82);border:1px solid var(--border2);border-radius:3px;padding:0.18rem 0.45rem;font-size:0.52rem;letter-spacing:0.1em;color:var(--muted2);}
+.export-filter-badge{position:absolute;top:0.55rem;left:0.55rem;background:rgba(232,255,71,0.15);border:1px solid rgba(232,255,71,0.3);border-radius:3px;padding:0.18rem 0.45rem;font-size:0.52rem;letter-spacing:0.1em;color:var(--accent);display:none;}
+.export-filter-badge.visible{display:block;}
+.export-options{width:100%;max-width:300px;display:flex;flex-direction:column;gap:0.65rem;}
+.export-btn{
+  width:100%;padding:0.85rem;border-radius:7px;border:1px solid var(--border);background:var(--surface);
+  color:var(--text);font-family:'DM Mono',monospace;font-size:0.72rem;
+  letter-spacing:0.05em;cursor:pointer;transition:all 0.15s;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.export-btn:hover{border-color:var(--accent);background:var(--accent-dim);}
+.export-btn.primary-export{background:var(--accent);border-color:var(--accent);color:#000;font-weight:700;}
+.export-btn.primary-export:hover{background:#d4eb30;}
+.export-spec{font-size:0.56rem;color:var(--muted2);}
+.export-btn.primary-export .export-spec{color:rgba(0,0,0,0.45);}
+.export-close{font-size:0.62rem;letter-spacing:0.1em;color:var(--muted);cursor:pointer;padding:0.4rem 1rem;border-radius:5px;border:none;background:transparent;font-family:'DM Mono',monospace;}
+.export-close:hover{color:var(--text);}
+
+/* ── TOAST ── */
+#toast{
+  position:fixed;bottom:calc(var(--bottombar-h) + 1rem + var(--safe-bottom));
+  left:50%;transform:translateX(-50%) translateY(16px);
+  background:var(--surface2);border:1px solid var(--border2);border-radius:6px;
+  padding:0.55rem 1rem;font-size:0.65rem;letter-spacing:0.05em;color:var(--text);
+  white-space:nowrap;opacity:0;transition:opacity 0.2s,transform 0.2s;z-index:100;pointer-events:none;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+#toast.success{border-color:rgba(79,255,176,0.4);color:#4fffb0;}
+#toast.error{border-color:rgba(255,68,68,0.4);color:#ff4444;}
+#toast.accent{border-color:rgba(232,255,71,0.4);color:var(--accent);}
+
+/* ── LOADING ── */
+#loading-overlay{position:absolute;inset:0;background:rgba(12,12,14,0.88);display:none;align-items:center;justify-content:center;flex-direction:column;gap:0.9rem;z-index:50;backdrop-filter:blur(4px);}
+#loading-overlay.show{display:flex;}
+.loading-spinner{width:28px;height:28px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.65s linear infinite;}
+.loading-msg{font-size:0.6rem;letter-spacing:0.18em;color:var(--muted2);}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeUp 0.35s ease both;}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-logo">PIX<span>ORA</span></div>
+  <div class="splash-tagline">Fujifilm Filters · AI Score · On Device</div>
+  <div class="splash-loader"><div class="splash-loader-fill"></div></div>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+  <div id="topbar">
+    <div class="logo-small">PIX<span>ORA</span></div>
+    <div class="topbar-actions">
+      <div class="icon-btn" id="btn-undo" title="Undo" style="display:none;">↩</div>
+      <div class="icon-btn" id="btn-reset" title="Reset" style="display:none;">✕</div>
+      <div class="icon-btn primary" id="btn-export" title="Export" style="display:none;">↑</div>
+    </div>
+  </div>
+
+  <div id="canvas-area">
+    <div id="upload-state">
+      <div class="upload-ring" id="upload-ring">
+        <span class="upload-icon-large">＋</span>
+        <span class="upload-ring-label">Upload</span>
+      </div>
+      <div class="upload-headline">Your Photo.<br/>Film-Perfect.</div>
+      <div class="upload-sub">
+        12 Fujifilm-style filters · Live WebGL preview<br/>
+        AI aesthetic scoring · Instagram-ready export<br/>
+        100% on-device · Nothing uploaded
+      </div>
+      <div class="upload-formats">
+        <span class="format-chip-small">JPG</span>
+        <span class="format-chip-small">PNG</span>
+        <span class="format-chip-small">WEBP</span>
+        <span class="format-chip-small">HEIC</span>
+      </div>
+    </div>
+
+    <div id="konva-container"></div>
+
+    <!-- Crop confirm bar (shown over canvas when crop tool active) -->
+    <div id="crop-confirm-bar">
+      <button class="crop-action-btn cancel" id="btn-crop-cancel">Cancel</button>
+      <button class="crop-action-btn confirm" id="btn-crop-confirm">Apply Crop</button>
+    </div>
+
+    <div id="loading-overlay">
+      <div class="loading-spinner"></div>
+      <div class="loading-msg" id="loading-msg">PROCESSING</div>
+    </div>
+  </div>
+
+  <!-- FILTER STRIP (shown when Filters tool active) -->
+  <div id="filter-strip">
+    <div class="filter-strip-inner" id="filter-strip-inner">
+      <!-- populated by JS -->
+    </div>
+  </div>
+
+  <!-- FORMAT BAR -->
+  <div id="format-bar">
+    <span class="format-label">Format</span>
+    <button class="fmt-btn active" data-ratio="1:1" data-w="1080" data-h="1080">
+      <span class="fmt-ratio">1:1</span><span class="fmt-name">Square</span>
+    </button>
+    <button class="fmt-btn" data-ratio="4:5" data-w="1080" data-h="1350">
+      <span class="fmt-ratio">4:5</span><span class="fmt-name">Portrait</span>
+    </button>
+    <button class="fmt-btn" data-ratio="9:16" data-w="1080" data-h="1920">
+      <span class="fmt-ratio">9:16</span><span class="fmt-name">Story</span>
+    </button>
+    <button class="fmt-btn" data-ratio="16:9" data-w="1920" data-h="1080">
+      <span class="fmt-ratio">16:9</span><span class="fmt-name">Land</span>
+    </button>
+    <button class="fmt-btn" data-ratio="free" data-w="0" data-h="0">
+      <span class="fmt-ratio">FREE</span><span class="fmt-name">Original</span>
+    </button>
+  </div>
+
+  <!-- BOTTOM TOOLBAR -->
+  <div id="bottombar">
+    <button class="tool-btn active" id="tool-crop" data-tool="crop">
+      <span class="tool-icon">⊡</span><span class="tool-label">Crop</span>
+    </button>
+    <button class="tool-btn" id="tool-adjust" data-tool="adjust">
+      <span class="tool-icon">◑</span><span class="tool-label">Adjust</span>
+    </button>
+    <button class="tool-btn" id="tool-filter" data-tool="filter">
+      <span class="tool-icon">◈</span><span class="tool-label">Filters</span>
+    </button>
+    <button class="tool-btn" id="tool-score" data-tool="score">
+      <span class="tool-icon">◎</span><span class="tool-label">AI Score</span>
+    </button>
+  </div>
+
+</div>
+
+<!-- ADJ PANEL -->
+<div id="adj-panel">
+  <div class="panel-drag"></div>
+  <div class="adj-title">Adjustments</div>
+  <div class="adj-row">
+    <div class="adj-row-header"><span class="adj-name">Brightness</span><span class="adj-val" id="val-brightness">0</span></div>
+    <input type="range" id="adj-brightness" min="-100" max="100" value="0"/>
+  </div>
+  <div class="adj-row">
+    <div class="adj-row-header"><span class="adj-name">Contrast</span><span class="adj-val" id="val-contrast">0</span></div>
+    <input type="range" id="adj-contrast" min="-100" max="100" value="0"/>
+  </div>
+  <div class="adj-row">
+    <div class="adj-row-header"><span class="adj-name">Saturation</span><span class="adj-val" id="val-saturation">0</span></div>
+    <input type="range" id="adj-saturation" min="-100" max="100" value="0"/>
+  </div>
+  <div class="adj-row">
+    <div class="adj-row-header"><span class="adj-name">Warmth</span><span class="adj-val" id="val-warmth">0</span></div>
+    <input type="range" id="adj-warmth" min="-100" max="100" value="0"/>
+  </div>
+  <div class="adj-row">
+    <div class="adj-row-header"><span class="adj-name">Shadows</span><span class="adj-val" id="val-shadows">0</span></div>
+    <input type="range" id="adj-shadows" min="-100" max="100" value="0"/>
+  </div>
+  <div class="adj-row">
+    <div class="adj-row-header"><span class="adj-name">Highlights</span><span class="adj-val" id="val-highlights">0</span></div>
+    <input type="range" id="adj-highlights" min="-100" max="100" value="0"/>
+  </div>
+</div>
+
+<!-- EXPORT PANEL -->
+<div id="export-panel">
+  <div class="export-title fade-in">Export Photo</div>
+  <div class="export-preview-wrap fade-in">
+    <img id="export-preview-img" src="" alt="Export preview"/>
+    <div class="export-badge" id="export-badge">1080 × 1080</div>
+    <div class="export-filter-badge" id="export-filter-badge">FILTER</div>
+  </div>
+  <div class="export-options fade-in">
+    <button class="export-btn primary-export" id="btn-download-ig">
+      <span>Instagram Export</span>
+      <span class="export-spec" id="ig-spec">1080 × 1080 · JPEG 92%</span>
+    </button>
+    <button class="export-btn" id="btn-download-orig">
+      <span>Original Quality</span>
+      <span class="export-spec">Max resolution · JPEG 95%</span>
+    </button>
+    <button class="export-btn" id="btn-download-web">
+      <span>Web Optimized</span>
+      <span class="export-spec">720px · JPEG 80%</span>
+    </button>
+  </div>
+  <button class="export-close" id="btn-export-close">✕ Cancel</button>
+</div>
+
+<!-- Hidden file input — body level, triggered programmatically for max mobile compat -->
+<input type="file" accept="image/*" id="file-input" style="position:fixed;left:-9999px;opacity:0;pointer-events:none;"/>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// PIXORA — Phase 2
+// Canvas: Konva.js | Filters: WebGL fragment shaders | Export: browser-image-compression
+// ═══════════════════════════════════════════════════════════════════
+
+// ─── FILTER DEFINITIONS ───
+// Each filter is a WebGL fragment shader uniform set
+// Base vertex shader is shared; each filter provides unique color transform params.
+// Format: { id, name, params: { brightness, contrast, saturation, hue, shadows, highlights, tint:[r,g,b], vignette, grain } }
+
+const FILTERS = [
+  {
+    id: 'none',
+    name: 'Original',
+    params: { brightness:1.0, contrast:1.0, saturation:1.0, hue:0.0, shadows:0.0, highlights:0.0, tint:[0,0,0], vignette:0.0, grain:0.0 }
+  },
+  {
+    id: 'provia',
+    name: 'Provia',
+    params: { brightness:1.02, contrast:1.08, saturation:1.15, hue:0.0, shadows:0.02, highlights:-0.03, tint:[2,-1,-2], vignette:0.12, grain:0.015 }
+  },
+  {
+    id: 'velvia',
+    name: 'Velvia',
+    params: { brightness:0.98, contrast:1.25, saturation:1.45, hue:3.0, shadows:-0.05, highlights:-0.08, tint:[4,-2,-1], vignette:0.2, grain:0.01 }
+  },
+  {
+    id: 'astia',
+    name: 'Astia',
+    params: { brightness:1.04, contrast:0.95, saturation:0.90, hue:-2.0, shadows:0.04, highlights:0.02, tint:[3,2,1], vignette:0.08, grain:0.018 }
+  },
+  {
+    id: 'classic_chrome',
+    name: 'Classic Chrome',
+    params: { brightness:0.96, contrast:1.12, saturation:0.72, hue:5.0, shadows:-0.06, highlights:-0.04, tint:[1,2,4], vignette:0.22, grain:0.025 }
+  },
+  {
+    id: 'eterna',
+    name: 'Eterna',
+    params: { brightness:0.94, contrast:0.90, saturation:0.85, hue:-4.0, shadows:0.08, highlights:-0.06, tint:[2,3,5], vignette:0.18, grain:0.03 }
+  },
+  {
+    id: 'acros',
+    name: 'Acros',
+    params: { brightness:0.97, contrast:1.20, saturation:0.0, hue:0.0, shadows:-0.08, highlights:-0.05, tint:[0,0,0], vignette:0.28, grain:0.035 }
+  },
+  {
+    id: 'acros_r',
+    name: 'Acros+R',
+    params: { brightness:0.96, contrast:1.28, saturation:0.0, hue:0.0, shadows:-0.12, highlights:-0.06, tint:[0,0,0], vignette:0.32, grain:0.04 }
+  },
+  {
+    id: 'classic_neg',
+    name: 'Classic Neg',
+    params: { brightness:0.93, contrast:1.18, saturation:0.88, hue:8.0, shadows:-0.04, highlights:-0.10, tint:[4,1,-2], vignette:0.25, grain:0.028 }
+  },
+  {
+    id: 'reala',
+    name: 'Reala Ace',
+    params: { brightness:1.0, contrast:1.05, saturation:1.05, hue:1.0, shadows:0.03, highlights:-0.02, tint:[1,1,2], vignette:0.10, grain:0.012 }
+  },
+  {
+    id: 'nostalgic_neg',
+    name: 'Nostalgic',
+    params: { brightness:1.0, contrast:0.88, saturation:0.78, hue:12.0, shadows:0.1, highlights:0.05, tint:[8,4,-3], vignette:0.15, grain:0.04 }
+  },
+  {
+    id: 'bleach_bypass',
+    name: 'Bleach',
+    params: { brightness:0.92, contrast:1.35, saturation:0.45, hue:0.0, shadows:-0.1, highlights:-0.08, tint:[2,2,2], vignette:0.3, grain:0.045 }
+  },
+];
+
+// ─── WEBGL ENGINE ───
+const GL = (() => {
+  const VERT_SRC = `
+    attribute vec2 a_pos;
+    attribute vec2 a_uv;
+    varying vec2 v_uv;
+    void main() {
+      v_uv = a_uv;
+      gl_Position = vec4(a_pos, 0.0, 1.0);
+    }
+  `;
+
+  const FRAG_SRC = `
+    precision highp float;
+    uniform sampler2D u_image;
+    varying vec2 v_uv;
+
+    uniform float u_brightness;
+    uniform float u_contrast;
+    uniform float u_saturation;
+    uniform float u_hue;
+    uniform float u_shadows;
+    uniform float u_highlights;
+    uniform vec3 u_tint;
+    uniform float u_vignette;
+    uniform float u_grain;
+    uniform float u_seed;
+
+    // Adj sliders from user (delta values)
+    uniform float u_adj_brightness;
+    uniform float u_adj_contrast;
+    uniform float u_adj_saturation;
+    uniform float u_adj_warmth;
+    uniform float u_adj_shadows;
+    uniform float u_adj_highlights;
+
+    vec3 rgb2hsl(vec3 c) {
+      float maxC = max(c.r, max(c.g, c.b));
+      float minC = min(c.r, min(c.g, c.b));
+      float l = (maxC + minC) / 2.0;
+      float s = 0.0, h = 0.0;
+      float d = maxC - minC;
+      if (d > 0.0001) {
+        s = l > 0.5 ? d / (2.0 - maxC - minC) : d / (maxC + minC);
+        if (maxC == c.r) h = (c.g - c.b) / d + (c.g < c.b ? 6.0 : 0.0);
+        else if (maxC == c.g) h = (c.b - c.r) / d + 2.0;
+        else h = (c.r - c.g) / d + 4.0;
+        h /= 6.0;
+      }
+      return vec3(h, s, l);
+    }
+
+    float hue2rgb(float p, float q, float t) {
+      if (t < 0.0) t += 1.0;
+      if (t > 1.0) t -= 1.0;
+      if (t < 1.0/6.0) return p + (q - p) * 6.0 * t;
+      if (t < 1.0/2.0) return q;
+      if (t < 2.0/3.0) return p + (q - p) * (2.0/3.0 - t) * 6.0;
+      return p;
+    }
+
+    vec3 hsl2rgb(vec3 hsl) {
+      float h = hsl.x, s = hsl.y, l = hsl.z;
+      if (s < 0.001) return vec3(l);
+      float q = l < 0.5 ? l * (1.0 + s) : l + s - l * s;
+      float p = 2.0 * l - q;
+      return vec3(hue2rgb(p,q,h+1.0/3.0), hue2rgb(p,q,h), hue2rgb(p,q,h-1.0/3.0));
+    }
+
+    float rand(vec2 co) {
+      return fract(sin(dot(co + u_seed, vec2(12.9898,78.233))) * 43758.5453);
+    }
+
+    void main() {
+      vec4 color = texture2D(u_image, v_uv);
+      vec3 c = color.rgb;
+
+      // ── FILTER LUT params ──
+
+      // Brightness
+      c *= u_brightness;
+
+      // Contrast
+      c = (c - 0.5) * u_contrast + 0.5;
+
+      // Saturation via HSL
+      vec3 hsl = rgb2hsl(c);
+      // Hue rotation
+      float totalHue = u_hue / 360.0 + u_adj_warmth * 0.0008;
+      hsl.x = fract(hsl.x + totalHue);
+      // Combined saturation
+      float totalSat = u_saturation + u_adj_saturation * 0.012;
+      hsl.y = clamp(hsl.y * totalSat, 0.0, 1.0);
+      c = hsl2rgb(hsl);
+
+      // Shadows lift/drop
+      float shadowMask = 1.0 - smoothstep(0.0, 0.5, hsl.z);
+      float totalShadows = u_shadows + u_adj_shadows * 0.008;
+      c += totalShadows * shadowMask;
+
+      // Highlights roll-off
+      float highlightMask = smoothstep(0.5, 1.0, hsl.z);
+      float totalHighlights = u_highlights + u_adj_highlights * 0.008;
+      c += totalHighlights * highlightMask;
+
+      // Tint overlay (additive, small values in 0–255 range normalized)
+      c += u_tint / 255.0 * 0.5;
+
+      // User brightness & contrast on top of filter
+      c *= 1.0 + u_adj_brightness * 0.012;
+      c = (c - 0.5) * (1.0 + u_adj_contrast * 0.015) + 0.5;
+
+      // Vignette
+      if (u_vignette > 0.0) {
+        vec2 uv2 = v_uv * 2.0 - 1.0;
+        float vig = 1.0 - dot(uv2, uv2) * u_vignette;
+        c *= clamp(vig, 0.0, 1.0);
+      }
+
+      // Film grain
+      if (u_grain > 0.0) {
+        float noise = rand(v_uv) * 2.0 - 1.0;
+        c += noise * u_grain;
+      }
+
+      gl_FragColor = vec4(clamp(c, 0.0, 1.0), color.a);
+    }
+  `;
+
+  function createGL(canvas) {
+    const gl = canvas.getContext('webgl', { preserveDrawingBuffer: true, antialias: false });
+    if (!gl) return null;
+
+    const vs = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vs, VERT_SRC);
+    gl.compileShader(vs);
+
+    const fs = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fs, FRAG_SRC);
+    gl.compileShader(fs);
+
+    const prog = gl.createProgram();
+    gl.attachShader(prog, vs);
+    gl.attachShader(prog, fs);
+    gl.linkProgram(prog);
+    gl.useProgram(prog);
+
+    // Quad
+    const pos = new Float32Array([-1,-1, 1,-1, -1,1, 1,1]);
+    const uv  = new Float32Array([0,1, 1,1, 0,0, 1,0]);
+
+    const posB = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, posB);
+    gl.bufferData(gl.ARRAY_BUFFER, pos, gl.STATIC_DRAW);
+    const aPos = gl.getAttribLocation(prog, 'a_pos');
+    gl.enableVertexAttribArray(aPos);
+    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+    const uvB = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, uvB);
+    gl.bufferData(gl.ARRAY_BUFFER, uv, gl.STATIC_DRAW);
+    const aUV = gl.getAttribLocation(prog, 'a_uv');
+    gl.enableVertexAttribArray(aUV);
+    gl.vertexAttribPointer(aUV, 2, gl.FLOAT, false, 0, 0);
+
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+    return { gl, prog, tex };
+  }
+
+  function setImage(ctx, img) {
+    const { gl, tex } = ctx;
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+  }
+
+  function render(ctx, filter, adj) {
+    const { gl, prog } = ctx;
+    const p = filter.params;
+
+    const set1f = (n, v) => gl.uniform1f(gl.getUniformLocation(prog, n), v);
+    const set3f = (n, a) => gl.uniform3f(gl.getUniformLocation(prog, n), a[0], a[1], a[2]);
+
+    set1f('u_brightness', p.brightness);
+    set1f('u_contrast', p.contrast);
+    set1f('u_saturation', p.saturation);
+    set1f('u_hue', p.hue);
+    set1f('u_shadows', p.shadows);
+    set1f('u_highlights', p.highlights);
+    set3f('u_tint', p.tint);
+    set1f('u_vignette', p.vignette);
+    set1f('u_grain', p.grain);
+    set1f('u_seed', Math.random());
+
+    // User adjustments
+    set1f('u_adj_brightness', adj.brightness || 0);
+    set1f('u_adj_contrast', adj.contrast || 0);
+    set1f('u_adj_saturation', adj.saturation || 0);
+    set1f('u_adj_warmth', adj.warmth || 0);
+    set1f('u_adj_shadows', adj.shadows || 0);
+    set1f('u_adj_highlights', adj.highlights || 0);
+
+    gl.uniform1i(gl.getUniformLocation(prog, 'u_image'), 0);
+    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  }
+
+  return { createGL, setImage, render };
+})();
+
+// ─── STATE ───
+const state = {
+  hasImage: false,
+  activeTool: 'crop',
+  activeFormat: { ratio:'1:1', w:1080, h:1080 },
+  adjustments: { brightness:0, contrast:0, saturation:0, warmth:0, shadows:0, highlights:0 },
+  activeFilter: FILTERS[0],
+  imageOriginal: null,
+  imageDataUrl: null,
+  konvaStage: null,
+  konvaLayer: null,
+  konvaImage: null,
+  // Crop
+  cropRect: null,
+  cropTransformer: null,
+  isCropping: false,
+  history: [],
+  // WebGL
+  mainGL: null,
+  mainCanvas: null,
+};
+
+// ─── SPLASH ───
+setTimeout(() => document.getElementById('splash').classList.add('hidden'), 2000);
+
+// ─── INIT ───
+window.addEventListener('DOMContentLoaded', () => {
+  initKonva();
+  buildFilterStrip();
+});
+
+// ─── KONVA ───
+function initKonva() {
+  const container = document.getElementById('konva-container');
+  const W = container.offsetWidth;
+  const H = container.offsetHeight;
+  state.konvaStage = new Konva.Stage({ container:'konva-container', width:W, height:H });
+  state.konvaLayer = new Konva.Layer();
+  state.konvaStage.add(state.konvaLayer);
+  new ResizeObserver(() => {
+    state.konvaStage.width(container.offsetWidth);
+    state.konvaStage.height(container.offsetHeight);
+    if (state.hasImage) fitImageToStage();
+  }).observe(container);
+}
+
+function fitImageToStage() {
+  if (!state.konvaImage || !state.imageOriginal) return;
+  const sw = state.konvaStage.width(), sh = state.konvaStage.height();
+  const iw = state.imageOriginal.naturalWidth, ih = state.imageOriginal.naturalHeight;
+  const scale = Math.min((sw * 0.92) / iw, (sh * 0.92) / ih);
+  const nw = iw * scale, nh = ih * scale;
+  state.konvaImage.width(nw);
+  state.konvaImage.height(nh);
+  state.konvaImage.x((sw - nw) / 2);
+  state.konvaImage.y((sh - nh) / 2);
+  state.konvaLayer.batchDraw();
+}
+
+// ─── LOAD IMAGE ───
+function loadImage(file) {
+  if (!file || !file.type.startsWith('image/')) { showToast('Please upload an image file', 'error'); return; }
+  showLoading('LOADING IMAGE');
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      state.imageOriginal = img;
+      state.imageDataUrl = e.target.result;
+      state.hasImage = true;
+      state.activeFilter = FILTERS[0];
+
+      // Build main GL canvas (offscreen, used for export + Konva texture)
+      const glCanvas = document.createElement('canvas');
+      glCanvas.width = img.naturalWidth;
+      glCanvas.height = img.naturalHeight;
+      state.mainCanvas = glCanvas;
+      state.mainGL = GL.createGL(glCanvas);
+      if (state.mainGL) GL.setImage(state.mainGL, img);
+
+      renderKonvaFromGL();
+      buildFilterThumbnails();
+      showEditorUI();
+      hideLoading();
+      pushHistory();
+    };
+    img.onerror = () => { hideLoading(); showToast('Failed to load image', 'error'); };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ─── RENDER KONVA FROM GL ───
+// Renders current filter+adjustments via WebGL onto offscreen canvas,
+// then uses that as the Konva image source.
+function renderKonvaFromGL() {
+  if (!state.mainGL || !state.imageOriginal) return;
+
+  GL.render(state.mainGL, state.activeFilter, state.adjustments);
+
+  state.konvaLayer.destroyChildren();
+
+  // Pull WebGL output into a new Image via toDataURL
+  const dataUrl = state.mainCanvas.toDataURL();
+  const img = new Image();
+  img.onload = () => {
+    state.konvaImage = new Konva.Image({ image: img, draggable: true });
+    state.konvaLayer.add(state.konvaImage);
+    state.konvaLayer.batchDraw();
+    fitImageToStage();
+  };
+  img.src = dataUrl;
+}
+
+// ─── ADJUSTMENTS ───
+const sliders = ['brightness','contrast','saturation','warmth','shadows','highlights'];
+sliders.forEach(name => {
+  const el = document.getElementById('adj-' + name);
+  const val = document.getElementById('val-' + name);
+  if (!el) return;
+  el.addEventListener('input', () => {
+    const v = parseInt(el.value);
+    val.textContent = v > 0 ? '+' + v : String(v);
+    state.adjustments[name] = v;
+    renderKonvaFromGL();
+  });
+  el.addEventListener('change', () => pushHistory());
+});
+
+// ─── SHOW EDITOR UI ───
+function showEditorUI() {
+  document.getElementById('upload-state').classList.add('hidden');
+  document.getElementById('format-bar').classList.add('visible');
+  document.getElementById('bottombar').classList.add('visible');
+  ['btn-undo','btn-reset','btn-export'].forEach(id => {
+    document.getElementById(id).style.display = 'flex';
+  });
+}
+
+// ─── UPLOAD — mobile-safe programmatic trigger ───
+const fileInput = document.getElementById('file-input');
+const uploadRing = document.getElementById('upload-ring');
+const uploadState = document.getElementById('upload-state');
+
+function triggerUpload() {
+  fileInput.value = '';
+  fileInput.click();
+}
+
+uploadRing.addEventListener('click', triggerUpload);
+uploadRing.addEventListener('touchend', (e) => { e.preventDefault(); triggerUpload(); });
+
+// Tap anywhere on upload state area (not just the ring)
+uploadState.addEventListener('click', triggerUpload);
+
+fileInput.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (file) loadImage(file);
+});
+
+// Drag + drop
+const canvasArea = document.getElementById('canvas-area');
+canvasArea.addEventListener('dragover', e => { e.preventDefault(); });
+canvasArea.addEventListener('drop', e => {
+  e.preventDefault();
+  const file = e.dataTransfer.files[0];
+  if (file) loadImage(file);
+});
+
+// ─── KONVA CROP SYSTEM ───
+function enterCropMode() {
+  if (!state.hasImage || !state.konvaImage) return;
+  state.isCropping = true;
+
+  const img = state.konvaImage;
+  const ix = img.x(), iy = img.y(), iw = img.width(), ih = img.height();
+
+  // Create crop rect centered on image, 80% size
+  const cw = iw * 0.85, ch = ih * 0.85;
+  const cx = ix + (iw - cw) / 2, cy = iy + (ih - ch) / 2;
+
+  state.cropRect = new Konva.Rect({
+    x: cx, y: cy, width: cw, height: ch,
+    fill: 'transparent',
+    stroke: '#e8ff47',
+    strokeWidth: 1.5,
+    draggable: true,
+    name: 'cropRect',
+  });
+
+  // Constrain drag within image bounds
+  state.cropRect.dragBoundFunc(function(pos) {
+    const minX = ix, minY = iy;
+    const maxX = ix + iw - this.width();
+    const maxY = iy + ih - this.height();
+    return {
+      x: Math.max(minX, Math.min(maxX, pos.x)),
+      y: Math.max(minY, Math.min(maxY, pos.y)),
+    };
+  });
+
+  state.cropTransformer = new Konva.Transformer({
+    nodes: [state.cropRect],
+    keepRatio: false,
+    enabledAnchors: ['top-left','top-right','bottom-left','bottom-right','top-center','bottom-center','middle-left','middle-right'],
+    boundBoxFunc: (oldBox, newBox) => {
+      // Constrain within image
+      const minW = 40, minH = 40;
+      if (newBox.width < minW || newBox.height < minH) return oldBox;
+      const maxX2 = ix + iw, maxY2 = iy + ih;
+      newBox.x = Math.max(ix, newBox.x);
+      newBox.y = Math.max(iy, newBox.y);
+      if (newBox.x + newBox.width > maxX2) newBox.width = maxX2 - newBox.x;
+      if (newBox.y + newBox.height > maxY2) newBox.height = maxY2 - newBox.y;
+      return newBox;
+    },
+    anchorStroke: '#e8ff47',
+    anchorFill: '#0c0c0e',
+    anchorSize: 10,
+    anchorCornerRadius: 2,
+    borderStroke: '#e8ff47',
+    borderDash: [4, 3],
+    rotateEnabled: false,
+  });
+
+  state.konvaLayer.add(state.cropRect);
+  state.konvaLayer.add(state.cropTransformer);
+  state.konvaLayer.batchDraw();
+
+  document.getElementById('crop-confirm-bar').classList.add('visible');
+}
+
+function exitCropMode(apply) {
+  if (!state.isCropping) return;
+
+  if (apply && state.cropRect && state.konvaImage) {
+    const img = state.konvaImage;
+    const ix = img.x(), iy = img.y(), iw = img.width(), ih = img.height();
+    const rx = state.cropRect.x(), ry = state.cropRect.y();
+    const rw = state.cropRect.width() * state.cropRect.scaleX();
+    const rh = state.cropRect.height() * state.cropRect.scaleY();
+
+    // Compute crop in original image pixel coordinates
+    const scaleX = state.imageOriginal.naturalWidth / iw;
+    const scaleY = state.imageOriginal.naturalHeight / ih;
+
+    const cropX = (rx - ix) * scaleX;
+    const cropY = (ry - iy) * scaleY;
+    const cropW = rw * scaleX;
+    const cropH = rh * scaleY;
+
+    // Render cropped image to new canvas
+    const cropCanvas = document.createElement('canvas');
+    cropCanvas.width = Math.round(cropW);
+    cropCanvas.height = Math.round(cropH);
+    const ctx = cropCanvas.getContext('2d');
+
+    // Draw GL-rendered source, cropped
+    const tempGL = GL.createGL(document.createElement('canvas'));
+    if (tempGL) {
+      tempGL.gl.canvas.width = state.imageOriginal.naturalWidth;
+      tempGL.gl.canvas.height = state.imageOriginal.naturalHeight;
+      GL.setImage(tempGL, state.imageOriginal);
+      GL.render(tempGL, state.activeFilter, state.adjustments);
+      ctx.drawImage(tempGL.gl.canvas, cropX, cropY, cropW, cropH, 0, 0, cropCanvas.width, cropCanvas.height);
+    } else {
+      ctx.drawImage(state.imageOriginal, cropX, cropY, cropW, cropH, 0, 0, cropCanvas.width, cropCanvas.height);
+    }
+
+    // Replace imageOriginal with cropped version
+    const croppedImg = new Image();
+    croppedImg.onload = () => {
+      state.imageOriginal = croppedImg;
+      // Rebuild GL context
+      const glCanvas = document.createElement('canvas');
+      glCanvas.width = croppedImg.naturalWidth;
+      glCanvas.height = croppedImg.naturalHeight;
+      state.mainCanvas = glCanvas;
+      state.mainGL = GL.createGL(glCanvas);
+      if (state.mainGL) GL.setImage(state.mainGL, croppedImg);
+
+      cleanupCrop();
+      renderKonvaFromGL();
+      buildFilterThumbnails();
+      showToast('Crop applied', 'success');
+      pushHistory();
+    };
+    croppedImg.src = cropCanvas.toDataURL();
+  } else {
+    cleanupCrop();
+  }
+}
+
+function cleanupCrop() {
+  if (state.cropRect) { state.cropRect.destroy(); state.cropRect = null; }
+  if (state.cropTransformer) { state.cropTransformer.destroy(); state.cropTransformer = null; }
+  state.isCropping = false;
+  state.konvaLayer.batchDraw();
+  document.getElementById('crop-confirm-bar').classList.remove('visible');
+}
+
+document.getElementById('btn-crop-confirm').addEventListener('click', () => exitCropMode(true));
+document.getElementById('btn-crop-cancel').addEventListener('click', () => exitCropMode(false));
+
+// ─── FILTER STRIP ───
+function buildFilterStrip() {
+  // Render placeholder thumbnails using colored canvases
+  const container = document.getElementById('filter-strip-inner');
+  container.innerHTML = '';
+  FILTERS.forEach((f, i) => {
+    const thumb = document.createElement('div');
+    thumb.className = 'filter-thumb' + (i === 0 ? ' active' : '');
+    thumb.dataset.id = f.id;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'filter-canvas-wrap';
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 56; canvas.height = 56;
+    canvas.id = 'fthumb-' + f.id;
+    wrap.appendChild(canvas);
+    thumb.appendChild(wrap);
+
+    const label = document.createElement('div');
+    label.className = 'filter-name';
+    label.textContent = f.name;
+    thumb.appendChild(label);
+
+    thumb.addEventListener('click', () => selectFilter(f, thumb));
+    container.appendChild(thumb);
+  });
+}
+
+function buildFilterThumbnails() {
+  // Once image is loaded, render each filter preview at 56×56
+  FILTERS.forEach(f => {
+    const canvas = document.getElementById('fthumb-' + f.id);
+    if (!canvas) return;
+
+    const ctx = GL.createGL(canvas);
+    if (ctx) {
+      GL.setImage(ctx, state.imageOriginal);
+      GL.render(ctx, f, { brightness:0, contrast:0, saturation:0, warmth:0, shadows:0, highlights:0 });
+    } else {
+      // WebGL not available — draw fallback
+      const ctx2d = canvas.getContext('2d');
+      if (ctx2d) {
+        ctx2d.drawImage(state.imageOriginal, 0, 0, 56, 56);
+      }
+    }
+  });
+}
+
+function selectFilter(filter, thumbEl) {
+  state.activeFilter = filter;
+  document.querySelectorAll('.filter-thumb').forEach(t => t.classList.remove('active'));
+  thumbEl.classList.add('active');
+  renderKonvaFromGL();
+  if (filter.id !== 'none') {
+    showToast(filter.name, 'accent');
+  }
+}
+
+// ─── TOOL SWITCHER ───
+document.querySelectorAll('.tool-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (!state.hasImage) return;
+    const tool = btn.dataset.tool;
+
+    if (state.isCropping && tool !== 'crop') exitCropMode(false);
+
+    state.activeTool = tool;
+
+    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    const adjPanel = document.getElementById('adj-panel');
+    const filterStrip = document.getElementById('filter-strip');
+
+    adjPanel.classList.remove('open');
+    filterStrip.classList.remove('visible');
+
+    if (tool === 'adjust') adjPanel.classList.add('open');
+    if (tool === 'filter') filterStrip.classList.add('visible');
+    if (tool === 'crop') enterCropMode();
+    if (tool === 'score') showToast('AI Aesthetic Scoring — Phase 3', 'accent');
+  });
+});
+
+// ─── FORMAT SELECTOR ───
+document.querySelectorAll('.fmt-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.fmt-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.activeFormat = { ratio: btn.dataset.ratio, w: parseInt(btn.dataset.w), h: parseInt(btn.dataset.h) };
+    showToast('Format: ' + btn.dataset.ratio, '');
+  });
+});
+
+// ─── EXPORT ───
+document.getElementById('btn-export').addEventListener('click', openExportPanel);
+document.getElementById('btn-export-close').addEventListener('click', () => {
+  document.getElementById('export-panel').classList.remove('open');
+});
+
+async function openExportPanel() {
+  if (!state.hasImage) return;
+  showLoading('PREPARING EXPORT');
+  try {
+    const dataUrl = await renderToDataURL(state.activeFormat);
+    document.getElementById('export-preview-img').src = dataUrl;
+    const { w, h, ratio } = state.activeFormat;
+    document.getElementById('export-badge').textContent = ratio === 'free'
+      ? `${state.imageOriginal.naturalWidth} × ${state.imageOriginal.naturalHeight}`
+      : `${w} × ${h}`;
+    document.getElementById('ig-spec').textContent = ratio === 'free'
+      ? `${state.imageOriginal.naturalWidth} × ${state.imageOriginal.naturalHeight} · JPEG 92%`
+      : `${w} × ${h} · JPEG 92%`;
+
+    const filterBadge = document.getElementById('export-filter-badge');
+    if (state.activeFilter.id !== 'none') {
+      filterBadge.textContent = state.activeFilter.name.toUpperCase();
+      filterBadge.classList.add('visible');
+    } else {
+      filterBadge.classList.remove('visible');
+    }
+
+    hideLoading();
+    document.getElementById('export-panel').classList.add('open');
+  } catch(e) {
+    hideLoading();
+    showToast('Export preview failed', 'error');
+  }
+}
+
+// ─── RENDER TO DATAURL (WebGL-aware) ───
+async function renderToDataURL(format) {
+  return new Promise((resolve) => {
+    const img = state.imageOriginal;
+    const iw = img.naturalWidth, ih = img.naturalHeight;
+
+    let tw, th;
+    if (format.ratio === 'free' || format.w === 0) { tw = iw; th = ih; }
+    else { tw = format.w; th = format.h; }
+
+    // Render full-res GL output
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = iw;
+    exportCanvas.height = ih;
+    const glCtx = GL.createGL(exportCanvas);
+
+    if (glCtx) {
+      GL.setImage(glCtx, img);
+      GL.render(glCtx, state.activeFilter, state.adjustments);
+    }
+
+    // Crop/resize to target format
+    const outCanvas = document.createElement('canvas');
+    outCanvas.width = tw; outCanvas.height = th;
+    const ctx = outCanvas.getContext('2d');
+    ctx.fillStyle = '#0c0c0e';
+    ctx.fillRect(0, 0, tw, th);
+
+    const src = glCtx ? exportCanvas : img;
+
+    if (format.ratio !== 'free') {
+      const targetAR = tw / th, imgAR = iw / ih;
+      let sx = 0, sy = 0, sw = iw, sh = ih;
+      if (imgAR > targetAR) { sw = ih * targetAR; sx = (iw - sw) / 2; }
+      else { sh = iw / targetAR; sy = (ih - sh) / 2; }
+      ctx.drawImage(src, sx, sy, sw, sh, 0, 0, tw, th);
+    } else {
+      const scale = Math.min(tw / iw, th / ih);
+      const dw = iw * scale, dh = ih * scale;
+      ctx.drawImage(src, 0, 0, iw, ih, (tw - dw) / 2, (th - dh) / 2, dw, dh);
+    }
+
+    resolve(outCanvas.toDataURL('image/jpeg', 0.92));
+  });
+}
+
+// ─── DOWNLOAD ───
+async function downloadAs(quality, maxDim, label) {
+  showLoading('EXPORTING');
+  try {
+    const format = quality === 'web'
+      ? { ratio:'free', w: maxDim, h: maxDim }
+      : state.activeFormat;
+
+    const dataUrl = await renderToDataURL(format);
+    const blob = await (await fetch(dataUrl)).blob();
+    const q = quality === 'orig' ? 0.95 : quality === 'web' ? 0.80 : 0.92;
+
+    const compressed = await imageCompression(blob, {
+      maxSizeMB: quality === 'web' ? 0.5 : 8,
+      maxWidthOrHeight: quality === 'web' ? maxDim : (state.activeFormat.w || 4096),
+      useWebWorker: true,
+      fileType: 'image/jpeg',
+      initialQuality: q,
+    });
+
+    const url = URL.createObjectURL(compressed);
+    const a = document.createElement('a');
+    a.href = url;
+    const ts = new Date().toISOString().slice(0,10).replace(/-/g,'');
+    const filterSuffix = state.activeFilter.id !== 'none' ? '_' + state.activeFilter.id : '';
+    a.download = `pixora_${ts}${filterSuffix}_${label}.jpg`;
+    a.click();
+    URL.revokeObjectURL(url);
+    hideLoading();
+    document.getElementById('export-panel').classList.remove('open');
+    showToast('✓ Downloaded · ' + label + (state.activeFilter.id !== 'none' ? ' · ' + state.activeFilter.name : ''), 'success');
+  } catch(e) {
+    hideLoading();
+    showToast('Export failed: ' + e.message, 'error');
+  }
+}
+
+document.getElementById('btn-download-ig').addEventListener('click', () => downloadAs('ig', 1080, 'instagram'));
+document.getElementById('btn-download-orig').addEventListener('click', () => downloadAs('orig', 4096, 'original'));
+document.getElementById('btn-download-web').addEventListener('click', () => downloadAs('web', 720, 'web'));
+
+// ─── RESET ───
+document.getElementById('btn-reset').addEventListener('click', () => {
+  if (!confirm('Reset all edits?')) return;
+  sliders.forEach(name => {
+    const el = document.getElementById('adj-' + name);
+    const val = document.getElementById('val-' + name);
+    if (el) { el.value = 0; val.textContent = '0'; }
+    state.adjustments[name] = 0;
+  });
+  state.activeFilter = FILTERS[0];
+  document.querySelectorAll('.filter-thumb').forEach(t => t.classList.remove('active'));
+  const firstThumb = document.querySelector('.filter-thumb');
+  if (firstThumb) firstThumb.classList.add('active');
+  renderKonvaFromGL();
+  showToast('Edits reset', '');
+});
+
+// ─── UNDO ───
+function pushHistory() {
+  state.history.push({ adj: { ...state.adjustments }, filter: state.activeFilter });
+  if (state.history.length > 20) state.history.shift();
+}
+
+document.getElementById('btn-undo').addEventListener('click', () => {
+  if (state.history.length < 2) { showToast('Nothing to undo', ''); return; }
+  state.history.pop();
+  const prev = state.history[state.history.length - 1];
+  Object.assign(state.adjustments, prev.adj);
+  state.activeFilter = prev.filter;
+
+  sliders.forEach(name => {
+    const el = document.getElementById('adj-' + name);
+    const val = document.getElementById('val-' + name);
+    if (el) {
+      el.value = state.adjustments[name];
+      const v = state.adjustments[name];
+      val.textContent = v > 0 ? '+' + v : String(v);
+    }
+  });
+
+  document.querySelectorAll('.filter-thumb').forEach(t => {
+    t.classList.toggle('active', t.dataset.id === state.activeFilter.id);
+  });
+
+  renderKonvaFromGL();
+  showToast('Undo', '');
+});
+
+// ─── ADJ PANEL SWIPE ───
+let panelStartY = 0;
+const adjPanel = document.getElementById('adj-panel');
+adjPanel.addEventListener('touchstart', e => { panelStartY = e.touches[0].clientY; }, { passive:true });
+adjPanel.addEventListener('touchend', e => {
+  if (e.changedTouches[0].clientY - panelStartY > 60) adjPanel.classList.remove('open');
+}, { passive:true });
+
+// ─── TOAST ───
+let toastTimeout;
+function showToast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show ' + type;
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => el.className = '', 2500);
+}
+
+function showLoading(msg = 'PROCESSING') {
+  document.getElementById('loading-msg').textContent = msg;
+  document.getElementById('loading-overlay').classList.add('show');
+}
+function hideLoading() {
+  document.getElementById('loading-overlay').classList.remove('show');
+}
+
+// ─── SW ───
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
