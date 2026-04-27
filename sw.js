@@ -1,7 +1,7 @@
 // PIXORA Service Worker — Phase 1
 // Strategy: Cache-first for static assets, network-first for dynamic
 
-const CACHE_NAME = 'pixora-v2';
+const CACHE_NAME = 'pixora-v3';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -32,11 +32,26 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch — cache-first for same-origin, network-first for CDN
+// Fetch — Network-First for same-origin
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // CDN resources (TF.js, Konva, fonts) — cache after first load
+  // Same-origin — Network-First (ensures updates are seen)
+  if (url.origin === self.location.origin) {
+    event.respondWith(
+      fetch(event.request)
+        .then((fresh) => {
+          return caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, fresh.clone());
+            return fresh;
+          });
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // CDN resources — Cache-First
   if (
     url.hostname.includes('cdn.jsdelivr.net') ||
     url.hostname.includes('fonts.googleapis.com') ||
@@ -49,21 +64,6 @@ self.addEventListener('fetch', (event) => {
         const fresh = await fetch(event.request);
         cache.put(event.request, fresh.clone());
         return fresh;
-      })
-    );
-    return;
-  }
-
-  // Same-origin — cache-first
-  if (url.origin === self.location.origin) {
-    event.respondWith(
-      caches.match(event.request).then((cached) => {
-        return cached || fetch(event.request).then((fresh) => {
-          return caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, fresh.clone());
-            return fresh;
-          });
-        });
       })
     );
   }
