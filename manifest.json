@@ -2,7 +2,7 @@
   "name": "PIXORA — AI Photo Editor",
   "short_name": "PIXORA",
   "description": "AI-powered photo editor for Instagram. On-device. Free forever.",
-  "start_url": "/",
+  "start_url": ".",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0c0c0c",

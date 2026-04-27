@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="PIXORA"/>
-<link rel="manifest" href="/manifest.json"/>
+<link rel="manifest" href="./manifest.json"/>
 <title>PIXORA — AI Photo Editor</title>
 <script src="https://cdn.jsdelivr.net/npm/konva@9.3.6/konva.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
@@ -269,7 +269,7 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 </head>
 <body>
 <div id="splash"><div class="swm">PIX<b>ORA</b></div><div class="ssub">Film · Cinematic · AI Score</div><div class="sbar"></div></div>
-<input type="file" accept="image/*" id="fi" style="position:fixed;left:-9999px;opacity:0;pointer-events:none;"/>
+<input type="file" accept="image/*" id="fi" style="position:fixed;left:-9999px;width:1px;height:1px;opacity:0;"/>
 
 <div id="app">
   <div id="top">
@@ -307,12 +307,12 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 
   <!-- CANVAS -->
   <div id="cv">
-    <div id="us">
+    <label id="us" for="fi">
       <div class="uz"><div class="up">+</div><div class="ul">Upload</div></div>
       <div class="uh">Drop any photo.<br/>Make it cinematic.</div>
       <div class="ud">28 film & cinematic filters · Per-channel curves · HSL color grading<br/>AI aesthetic scoring · Before/After compare · Instagram export</div>
       <div class="uc"><span class="chip">JPG</span><span class="chip">PNG</span><span class="chip">WEBP</span><span class="chip">HEIC</span></div>
-    </div>
+    </label>
     <div id="kc"></div>
     <!-- Before/After badge -->
     <div id="ba-badge"><div class="ba-lbl active" id="ba-edited">Edited</div><div class="ba-lbl" id="ba-orig">Original</div></div>
@@ -1306,8 +1306,7 @@ document.getElementById('btn-dl-wb').addEventListener('click', () => dl('web', 7
 
 // ─── UPLOAD ───
 const fi = document.getElementById('fi');
-document.getElementById('us').addEventListener('click', () => { fi.value=''; fi.click(); });
-document.getElementById('us').addEventListener('touchend', e => { e.preventDefault(); fi.value=''; fi.click(); }, { passive: false });
+document.getElementById('us').addEventListener('click', () => { fi.value=''; });
 fi.addEventListener('change', e => { const f = e.target.files[0]; if (f) loadImg(f); });
 const ca = document.getElementById('cv');
 ca.addEventListener('dragover', e => e.preventDefault());
@@ -1324,7 +1323,7 @@ function toast(msg, type='') { const el=document.getElementById('toast'); el.tex
 function showLoad(m='PROCESSING') { document.getElementById('lm').textContent=m; document.getElementById('ld').classList.add('v'); }
 function hideLoad() { document.getElementById('ld').classList.remove('v'); }
 
-if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {})); }
+if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {})); }
 </script>
 </body>
 </html>

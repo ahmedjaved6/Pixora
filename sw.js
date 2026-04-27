@@ -1,11 +1,11 @@
 // PIXORA Service Worker — Phase 1
 // Strategy: Cache-first for static assets, network-first for dynamic
 
-const CACHE_NAME = 'pixora-v1';
+const CACHE_NAME = 'pixora-v2';
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
+  './',
+  './index.html',
+  './manifest.json',
 ];
 
 // Install — cache static assets
