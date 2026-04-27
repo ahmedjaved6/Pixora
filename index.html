@@ -257,6 +257,9 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 .rfn{font-size:.42rem;letter-spacing:.08em;color:var(--mu2);text-transform:uppercase;}
 #hp{flex:1;overflow-y:auto;padding:.6rem;}
 /* SPLIT SLIDER */
+.sc-platforms{display:flex;gap:.4rem;margin:.5rem 0 .8rem;width:100%;max-width:300px;}
+.sc-plat{flex:1;padding:.3rem .1rem;border-radius:5px;border:1px solid var(--bd2);background:var(--sf);font-family:'DM Mono',monospace;font-size:.48rem;color:var(--mu2);cursor:pointer;transition:all .15s;letter-spacing:.04em;}
+.sc-plat.on{border-color:var(--ac);background:var(--acd);color:var(--ac);}
 #split-wrap{position:absolute;inset:0;pointer-events:none;z-index:11;display:none;align-items:center;}
 #split-wrap.v{display:flex;}
 #split-line{position:absolute;top:0;bottom:0;width:2px;background:var(--ac);box-shadow:0 0 10px rgba(232,255,71,.5);left:50%;pointer-events:auto;cursor:ew-resize;display:flex;align-items:center;justify-content:center;}
@@ -344,6 +347,11 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
     <!-- AI Score -->
     <div id="score-overlay">
       <div class="sc-title">AI Aesthetic Score</div>
+      <div class="sc-platforms" id="sc-platforms">
+        <button class="sc-plat on" data-plat="instagram">📸 Instagram</button>
+        <button class="sc-plat" data-plat="linkedin">💼 LinkedIn</button>
+        <button class="sc-plat" data-plat="twitter">🐦 Twitter/X</button>
+      </div>
       <div class="sc-ring-wrap">
         <svg viewBox="0 0 140 140"><circle class="sc-bg" cx="70" cy="70" r="58"/><circle class="sc-arc" id="sc-arc" cx="70" cy="70" r="58" stroke-dasharray="364.4" stroke-dashoffset="364.4" transform="rotate(-90 70 70)"/></svg>
         <div class="sc-num"><span class="sc-val" id="sc-val">—</span><span class="sc-label">/ 10</span></div>
@@ -417,25 +425,25 @@ const PACKS = [
   { pack:'Original', filters:[
     { id:'none', name:'Original', p:null },
   ]},
-  { pack:'Fujifilm', filters:[
-    { id:'provia',     name:'Provia',        p:{ r:[.05,.06,.5,.52,.95,.96], g:[.05,.055,.5,.515,.95,.955], b:[.05,.045,.5,.5,.95,.945], sat:1.12, vi:0.10, gr:0.012, wt:2, wb:-1, tsh:[0,0,1], thl:[-1,0,0] }},
-    { id:'velvia',     name:'Velvia',         p:{ r:[.05,.04,.5,.55,.95,1.0], g:[.05,.06,.5,.56,.9,.92], b:[.05,.04,.5,.48,.95,.98], sat:1.45, vi:0.22, gr:0.010, wt:4, wb:-2, tsh:[2,-1,-1], thl:[1,0,-2] }},
-    { id:'astia',      name:'Astia',          p:{ r:[.05,.065,.5,.52,.95,.95], g:[.05,.055,.5,.52,.95,.96], b:[.05,.06,.5,.53,.95,.95], sat:0.88, vi:0.08, gr:0.018, wt:-2, wb:1, tsh:[1,1,0], thl:[2,1,0] }},
-    { id:'chrome',     name:'Classic Chrome', p:{ r:[.05,.06,.3,.35,.7,.68,.95,.9], g:[.05,.055,.5,.52,.95,.92], b:[.05,.07,.5,.56,.95,.93], sat:0.68, vi:0.24, gr:0.028, wt:6, wb:2, tsh:[0,1,2], thl:[-1,0,2] }},
-    { id:'eterna',     name:'Eterna',         p:{ r:[.05,.07,.5,.53,.95,.93], g:[.05,.065,.5,.52,.95,.93], b:[.05,.075,.5,.55,.95,.95], sat:0.80, vi:0.20, gr:0.032, wt:-5, wb:3, tsh:[1,1,2], thl:[0,1,2] }},
-    { id:'acros',      name:'Acros',          p:{ r:[.05,.04,.5,.54,.95,.93], g:[.05,.04,.5,.54,.95,.93], b:[.05,.04,.5,.54,.95,.93], sat:0.0, vi:0.30, gr:0.038, wt:0, wb:0, tsh:[0,0,0], thl:[0,0,0] }},
-    { id:'acros_r',    name:'Acros+R',        p:{ r:[.0,.0,.35,.4,.7,.74,.95,.92], g:[.05,.04,.5,.54,.95,.92], b:[.05,.04,.5,.54,.95,.92], sat:0.0, vi:0.35, gr:0.044, wt:0, wb:0, tsh:[0,0,0], thl:[0,0,0] }},
-    { id:'reala',      name:'Reala Ace',      p:{ r:[.05,.06,.5,.515,.95,.955], g:[.05,.055,.5,.515,.95,.96], b:[.05,.055,.5,.515,.95,.95], sat:1.05, vi:0.10, gr:0.012, wt:1, wb:0, tsh:[0,0,1], thl:[1,0,0] }},
-    { id:'classic_neg',name:'Classic Neg',    p:{ r:[.05,.07,.5,.56,.95,.95], g:[.05,.055,.5,.52,.95,.92], b:[.05,.045,.5,.50,.95,.93], sat:0.85, vi:0.26, gr:0.030, wt:9, wb:4, tsh:[2,0,-1], thl:[-1,0,2] }},
-    { id:'nostalgic',  name:'Nostalgic Neg',  p:{ r:[.05,.10,.5,.58,.9,.90], g:[.05,.08,.5,.55,.9,.88], b:[.05,.06,.5,.50,.9,.84], sat:0.75, vi:0.16, gr:0.045, wt:13, wb:6, tsh:[4,2,-1], thl:[3,2,-1] }},
+  { pack:'FS Series', filters:[
+    { id:'provia',     name:'FS-Standard',    p:{ r:[.05,.06,.5,.52,.95,.96], g:[.05,.055,.5,.515,.95,.955], b:[.05,.045,.5,.5,.95,.945], sat:1.12, vi:0.10, gr:0.012, wt:2, wb:-1, tsh:[0,0,1], thl:[-1,0,0] }},
+    { id:'velvia',     name:'FS-Vivid',       p:{ r:[.05,.04,.5,.55,.95,1.0], g:[.05,.06,.5,.56,.9,.92], b:[.05,.04,.5,.48,.95,.98], sat:1.45, vi:0.22, gr:0.010, wt:4, wb:-2, tsh:[2,-1,-1], thl:[1,0,-2] }},
+    { id:'astia',      name:'FS-Soft',        p:{ r:[.05,.065,.5,.52,.95,.95], g:[.05,.055,.5,.52,.95,.96], b:[.05,.06,.5,.53,.95,.95], sat:0.88, vi:0.08, gr:0.018, wt:-2, wb:1, tsh:[1,1,0], thl:[2,1,0] }},
+    { id:'chrome',     name:'FS-Chrome',      p:{ r:[.05,.06,.3,.35,.7,.68,.95,.9], g:[.05,.055,.5,.52,.95,.92], b:[.05,.07,.5,.56,.95,.93], sat:0.68, vi:0.24, gr:0.028, wt:6, wb:2, tsh:[0,1,2], thl:[-1,0,2] }},
+    { id:'eterna',     name:'FS-Cinema',      p:{ r:[.05,.07,.5,.53,.95,.93], g:[.05,.065,.5,.52,.95,.93], b:[.05,.075,.5,.55,.95,.95], sat:0.80, vi:0.20, gr:0.032, wt:-5, wb:3, tsh:[1,1,2], thl:[0,1,2] }},
+    { id:'acros',      name:'FS-Mono',        p:{ r:[.05,.04,.5,.54,.95,.93], g:[.05,.04,.5,.54,.95,.93], b:[.05,.04,.5,.54,.95,.93], sat:0.0, vi:0.30, gr:0.038, wt:0, wb:0, tsh:[0,0,0], thl:[0,0,0] }},
+    { id:'acros_r',    name:'FS-Mono Red',    p:{ r:[.0,.0,.35,.4,.7,.74,.95,.92], g:[.05,.04,.5,.54,.95,.92], b:[.05,.04,.5,.54,.95,.92], sat:0.0, vi:0.35, gr:0.044, wt:0, wb:0, tsh:[0,0,0], thl:[0,0,0] }},
+    { id:'reala',      name:'FS-Natural',     p:{ r:[.05,.06,.5,.515,.95,.955], g:[.05,.055,.5,.515,.95,.96], b:[.05,.055,.5,.515,.95,.95], sat:1.05, vi:0.10, gr:0.012, wt:1, wb:0, tsh:[0,0,1], thl:[1,0,0] }},
+    { id:'classic_neg',name:'FS-Fade',        p:{ r:[.05,.07,.5,.56,.95,.95], g:[.05,.055,.5,.52,.95,.92], b:[.05,.045,.5,.50,.95,.93], sat:0.85, vi:0.26, gr:0.030, wt:9, wb:4, tsh:[2,0,-1], thl:[-1,0,2] }},
+    { id:'nostalgic',  name:'FS-Memory',      p:{ r:[.05,.10,.5,.58,.9,.90], g:[.05,.08,.5,.55,.9,.88], b:[.05,.06,.5,.50,.9,.84], sat:0.75, vi:0.16, gr:0.045, wt:13, wb:6, tsh:[4,2,-1], thl:[3,2,-1] }},
   ]},
-  { pack:'Kodak Film', filters:[
-    { id:'portra',     name:'Portra 400',     p:{ r:[.05,.09,.5,.55,.95,.97], g:[.05,.07,.5,.52,.95,.95], b:[.05,.07,.5,.52,.95,.92], sat:0.92, vi:0.06, gr:0.016, wt:2, wb:1, tsh:[2,1,0], thl:[2,1,-1] }},
-    { id:'ektar',      name:'Ektar 100',      p:{ r:[.0,.0,.5,.54,.95,1.0], g:[.05,.055,.5,.52,.95,.96], b:[.05,.04,.5,.49,.95,.93], sat:1.28, vi:0.12, gr:0.010, wt:3, wb:0, tsh:[1,0,-1], thl:[1,0,-2] }},
-    { id:'gold200',    name:'Gold 200',       p:{ r:[.05,.10,.5,.56,.95,.98], g:[.05,.07,.5,.53,.95,.94], b:[.05,.055,.5,.50,.9,.88], sat:1.08, vi:0.08, gr:0.022, wt:8, wb:2, tsh:[3,1,-1], thl:[3,1,-2] }},
-    { id:'ultramax',   name:'Ultramax 400',   p:{ r:[.05,.08,.5,.55,.95,.97], g:[.05,.065,.5,.52,.95,.95], b:[.05,.055,.5,.50,.95,.94], sat:1.16, vi:0.10, gr:0.020, wt:5, wb:1, tsh:[1,0,-1], thl:[1,0,-1] }},
-    { id:'tri_x',      name:'Tri-X 400',      p:{ r:[.0,.0,.4,.44,.8,.84,.95,.92], g:[.0,.0,.4,.44,.8,.84,.95,.92], b:[.0,.0,.4,.44,.8,.84,.95,.92], sat:0.0, vi:0.28, gr:0.048, wt:0, wb:0, tsh:[0,0,0], thl:[0,0,0] }},
-    { id:'tmax',       name:'T-Max 3200',     p:{ r:[.0,.0,.3,.36,.7,.76,.95,.92], g:[.0,.0,.3,.36,.7,.76,.95,.92], b:[.0,.0,.3,.36,.7,.76,.95,.92], sat:0.0, vi:0.40, gr:0.062, wt:0, wb:0, tsh:[0,0,0], thl:[0,0,0] }},
+  { pack:'KP Series', filters:[
+    { id:'portra',     name:'KP-Portrait',    p:{ r:[.05,.09,.5,.55,.95,.97], g:[.05,.07,.5,.52,.95,.95], b:[.05,.07,.5,.52,.95,.92], sat:0.92, vi:0.06, gr:0.016, wt:2, wb:1, tsh:[2,1,0], thl:[2,1,-1] }},
+    { id:'ektar',      name:'KP-Vivid 100',   p:{ r:[.0,.0,.5,.54,.95,1.0], g:[.05,.055,.5,.52,.95,.96], b:[.05,.04,.5,.49,.95,.93], sat:1.28, vi:0.12, gr:0.010, wt:3, wb:0, tsh:[1,0,-1], thl:[1,0,-2] }},
+    { id:'gold200',    name:'KP-Gold',        p:{ r:[.05,.10,.5,.56,.95,.98], g:[.05,.07,.5,.53,.95,.94], b:[.05,.055,.5,.50,.9,.88], sat:1.08, vi:0.08, gr:0.022, wt:8, wb:2, tsh:[3,1,-1], thl:[3,1,-2] }},
+    { id:'ultramax',   name:'KP-Daylight',    p:{ r:[.05,.08,.5,.55,.95,.97], g:[.05,.065,.5,.52,.95,.95], b:[.05,.055,.5,.50,.95,.94], sat:1.16, vi:0.10, gr:0.020, wt:5, wb:1, tsh:[1,0,-1], thl:[1,0,-1] }},
+    { id:'tri_x',      name:'KP-Grain 400',   p:{ r:[.0,.0,.4,.44,.8,.84,.95,.92], g:[.0,.0,.4,.44,.8,.84,.95,.92], b:[.0,.0,.4,.44,.8,.84,.95,.92], sat:0.0, vi:0.28, gr:0.048, wt:0, wb:0, tsh:[0,0,0], thl:[0,0,0] }},
+    { id:'tmax',       name:'KP-Ultra Grain', p:{ r:[.0,.0,.3,.36,.7,.76,.95,.92], g:[.0,.0,.3,.36,.7,.76,.95,.92], b:[.0,.0,.3,.36,.7,.76,.95,.92], sat:0.0, vi:0.40, gr:0.062, wt:0, wb:0, tsh:[0,0,0], thl:[0,0,0] }},
   ]},
   { pack:'Cinematic', filters:[
     { id:'bleach',     name:'Bleach Bypass',  p:{ r:[.0,.0,.5,.56,.95,.96], g:[.0,.0,.5,.55,.95,.93], b:[.0,.0,.5,.55,.95,.94], sat:0.40, vi:0.32, gr:0.050, wt:0, wb:0, tsh:[1,1,1], thl:[1,1,1] }},
@@ -677,6 +685,7 @@ function renderGL(immediate) {
       S.kImg = new Konva.Image({ image: tmp, draggable: true });
       S.layer.add(S.kImg); S.layer.batchDraw(); fitImg();
       if (S.cropping) enterCrop();
+      maybeLiveScore();
     };
     tmp.src = url;
   });
@@ -1048,7 +1057,9 @@ function enterCrop() {
       if (nw.x < ix || nw.y < iy || nw.x + nw.width > ix + iw || nw.y + nw.height > iy + ih) return old;
       return nw;
     },
-    anchorStroke: '#e8ff47', anchorFill: '#0c0c0e', anchorSize: 9, anchorCornerRadius: 2,
+    anchorStroke: '#e8ff47', anchorFill: '#0c0c0e',
+    anchorSize: isMob() ? 18 : 9,
+    anchorCornerRadius: isMob() ? 9 : 2,
     borderStroke: '#e8ff47', borderDash: [4, 3],
   });
 
@@ -1086,6 +1097,24 @@ function cleanCrop() {
 document.getElementById('btn-cr-ok').addEventListener('click', applyCrop);
 document.getElementById('btn-cr-cancel').addEventListener('click', () => { cleanCrop(); toast('Cancelled', ''); });
 
+// ─── PLATFORM TAB BINDING ───
+document.querySelectorAll('.sc-plat').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.sc-plat').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    S.scorePlatform = btn.dataset.plat;
+    if (document.getElementById('score-overlay').classList.contains('v')) runAIScore();
+  });
+});
+
+// ─── DEBOUNCED LIVE SCORE REFRESH ───
+let _scoreTimer = null;
+function maybeLiveScore() {
+  if (!document.getElementById('score-overlay').classList.contains('v')) return;
+  clearTimeout(_scoreTimer);
+  _scoreTimer = setTimeout(() => runAIScore(), 800);
+}
+
 // ─── AI SCORE (TF.js MobileNet NIMA proxy) ───
 async function loadAIModel() {
   if (S.tfModel || S.tfLoading) return;
@@ -1113,19 +1142,42 @@ async function runAIScore() {
   document.getElementById('sc-details').innerHTML = '';
   document.getElementById('sc-sug').style.display = 'none';
 
-  const metrics = analyzeImage(S.imgOrig, S.filter, S.adj);
-  let tfScore = null;
-  if (S.tfModel) {
-    try { tfScore = await getTFScore(S.imgOrig); } catch(e) { console.warn('TF score failed:', e); }
-  }
-  const finalScore = tfScore !== null
-    ? Math.round((metrics.composite * 0.7 + tfScore * 0.3) * 10) / 10
-    : metrics.composite;
+  // Render the current edited state to a temp canvas for analysis
+  const tc = document.createElement('canvas'); tc.width = 224; tc.height = 224;
+  GL.si(S.imgOrig); GL.dr(S.filter, S.adj, 224, 224, 0);
+  tc.getContext('2d').drawImage(glCanvas, 0, 0, 224, 224);
+  const editedImg = new Image(); editedImg.src = tc.toDataURL();
+  await new Promise(r => editedImg.onload = r);
 
-  displayScore(finalScore, metrics);
+  const metrics = analyzeImage(editedImg);
+  const score = calcPlatformScore(metrics, S.scorePlatform);
+  displayScore(score, metrics);
 }
 
-function analyzeImage(img, filter, adj) {
+// ─── PLATFORM-SPECIFIC AI SCORING ───
+const PLATFORM_WEIGHTS = {
+  instagram: {
+    label: 'Instagram',
+    weights: { exposure: 1.5, contrast: 1.8, colorfulness: 2.0, onThird: 1.4, isSymmetric: 0.8, tonalRange: 1.2 },
+    tip: 'Try FS-Vivid or Teal & Orange for maximum Instagram impact.',
+    filterSuggestion: 'FS-Vivid'
+  },
+  linkedin: {
+    label: 'LinkedIn',
+    weights: { exposure: 2.0, contrast: 1.2, colorfulness: 0.5, onThird: 1.0, isSymmetric: 1.5, tonalRange: 1.0 },
+    tip: 'Clean, bright, neutral tones score highest on LinkedIn.',
+    filterSuggestion: 'FS-Natural'
+  },
+  twitter: {
+    label: 'Twitter/X',
+    weights: { exposure: 1.2, contrast: 2.2, colorfulness: 1.8, onThird: 1.0, isSymmetric: 1.0, tonalRange: 1.5 },
+    tip: 'High contrast and punchy color grab attention in fast-scrolling feeds.',
+    filterSuggestion: 'KP-Vivid 100'
+  }
+};
+S.scorePlatform = 'instagram';
+
+function analyzeImage(img) {
   const ac = document.createElement('canvas'); ac.width = 224; ac.height = 224;
   const actx = ac.getContext('2d'); actx.drawImage(img, 0, 0, 224, 224);
   const px = actx.getImageData(0, 0, 224, 224).data, n = px.length / 4;
@@ -1140,7 +1192,7 @@ function analyzeImage(img, filter, adj) {
     const gx = Math.floor((i % 224) / (224/3)), gy = Math.floor((i / 224) / (224/3));
     if (gx < 3 && gy < 3) grid[gy][gx] += lum;
   }
-  brightness /= n;
+  brightness /= n; r2 /= n; g2 /= n; b2 /= n;
   for (let i = 0; i < n; i++) {
     const lum = .299*(px[i*4]/255) + .587*(px[i*4+1]/255) + .114*(px[i*4+2]/255);
     rVar += (lum - brightness) ** 2;
@@ -1153,15 +1205,26 @@ function analyzeImage(img, filter, adj) {
   const isSymmetric = Math.abs(grid[0][0]-grid[0][2]) + Math.abs(grid[1][0]-grid[1][2]) + Math.abs(grid[2][0]-grid[2][2]) < (maxL * 0.15);
   const colorfulness = Math.min(1, (Math.abs(r2-g2) + Math.abs(g2-b2) + Math.abs(r2-b2)) * 2);
 
-  const raw = (rVar * 8.0 + (onThird?1.2:0.8) + (isSymmetric?1.1:1.0) + colorfulness * 1.5 + brightness * 0.5) / 10.0;
   return {
-    composite: Math.round(Math.min(9.8, Math.max(3.0, raw * 10)) * 10) / 10,
     exposure: brightness,
     contrast: Math.min(1, rVar * 5),
-    colorfulness: colorfulness,
+    colorfulness,
     onThird, isSymmetric,
     tonalRange: Math.min(1, rVar * 3)
   };
+}
+
+function calcPlatformScore(metrics, platform) {
+  const w = PLATFORM_WEIGHTS[platform].weights;
+  const raw = (
+    metrics.exposure * w.exposure +
+    metrics.contrast * w.contrast +
+    metrics.colorfulness * w.colorfulness +
+    (metrics.onThird ? 1 : 0.6) * w.onThird +
+    (metrics.isSymmetric ? 1 : 0.7) * w.isSymmetric +
+    metrics.tonalRange * w.tonalRange
+  ) / (w.exposure + w.contrast + w.colorfulness + w.onThird + w.isSymmetric + w.tonalRange);
+  return Math.round(Math.min(9.8, Math.max(3.0, raw * 10)) * 10) / 10;
 }
 
 async function getTFScore(img) {
@@ -1196,8 +1259,9 @@ function displayScore(score, metrics) {
   arc.style.stroke = color;
   document.getElementById('sc-val').textContent = score.toFixed(1);
   document.getElementById('sc-val').style.color = color;
+  const platLabel = PLATFORM_WEIGHTS[S.scorePlatform].label;
   const gradeEl = document.getElementById('sc-grade');
-  gradeEl.textContent = grade;
+  gradeEl.textContent = `${grade} · ${platLabel}`;
   gradeEl.style.color = color;
   gradeEl.style.borderColor = color;
   gradeEl.style.background = gradeBg;
@@ -1209,7 +1273,6 @@ function displayScore(score, metrics) {
     ['Exposure', metrics.exposure],
     ['Contrast', metrics.contrast],
     ['Color', metrics.colorfulness],
-    ['Sharpness', metrics.sharpness],
     ['Tonal Range', metrics.tonalRange],
   ];
   rows.forEach(([label, val]) => {
@@ -1222,22 +1285,21 @@ function displayScore(score, metrics) {
       </div>`;
   });
 
-  // Suggestions
-  const sugs = [];
+  // Platform-specific tip
+  const platTip = PLATFORM_WEIGHTS[S.scorePlatform].tip;
+
+  const sugs = [platTip];
   if (metrics.exposure < 0.4) sugs.push('→ Lift shadows or increase exposure — the mood is a bit heavy.');
   if (metrics.exposure > 0.85) sugs.push('→ Pull back highlights — some details are getting lost in the light.');
   if (metrics.contrast < 0.3) sugs.push('→ Add contrast — the image feels a bit "flat".');
-  if (metrics.colorfulness < 0.2) sugs.push('→ The colors are muted. Try Velvia or Portra for a classic pop.');
-  
-  // Compositional Advice
-  if (!metrics.onThird) sugs.push('→ Try the Rule of Thirds — move your subject off-center for a more dynamic composition.');
+  if (metrics.colorfulness < 0.2) sugs.push('→ The colors are muted. Try FS-Vivid or Teal & Orange for a classic pop.');
+  if (!metrics.onThird) sugs.push('→ Try the Rule of Thirds — move your subject off-center for a dynamic composition.');
   if (metrics.isSymmetric) sugs.push('→ Strong symmetry detected! This works great for architectural shots.');
   else if (metrics.onThird) sugs.push('→ Great subject placement! The off-center focus creates nice balance.');
-
   if (S.filter.id === 'none') sugs.push('→ Try a cinematic filter like "Teal & Orange" or "Digi Flash".');
   if (metrics.tonalRange < 0.45) sugs.push('→ Tonal depth is shallow. Try using Curves to deepen the blacks.');
-  if (metrics.composite > 8.5) sugs.push('→ Stunning! The composition and grading are professional grade.');
-  else if (metrics.composite > 7.0) sugs.push('→ Great shot. A slight tweak to the shadows could make it pop.');
+  if (score > 8.5) sugs.push('→ Stunning! The composition and grading are professional grade.');
+  else if (score > 7.0) sugs.push('→ Great shot. A slight tweak to the shadows could make it pop.');
 
   if (sugs.length > 0) {
     const sugEl = document.getElementById('sc-sug');
