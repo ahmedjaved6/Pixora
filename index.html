@@ -256,15 +256,15 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 .rfr{font-family:'Bebas Neue',sans-serif;font-size:.8rem;color:var(--tx);}
 .rfn{font-size:.42rem;letter-spacing:.08em;color:var(--mu2);text-transform:uppercase;}
 #hp{flex:1;overflow-y:auto;padding:.6rem;}
-#hp::-webkit-scrollbar{width:3px;}
-#hp::-webkit-scrollbar-thumb{background:var(--bd2);}
-.htt{font-size:.5rem;letter-spacing:.22em;text-transform:uppercase;color:var(--mu2);margin-bottom:.5rem;}
-.hi2{display:flex;align-items:center;gap:.5rem;padding:.38rem .42rem;border-radius:5px;cursor:pointer;border:1px solid transparent;margin-bottom:.15rem;transition:all .15s;color:var(--mu2);}
-.hi2:hover{background:var(--sf);color:var(--tx);}
-.hi2.cur{border-color:var(--bd2);background:var(--sf);color:var(--tx);}
-.hd{width:5px;height:5px;border-radius:50%;background:var(--mu);flex-shrink:0;}
-.hi2.cur .hd{background:var(--ac);}
-.hl{font-size:.54rem;letter-spacing:.05em;}
+/* SPLIT SLIDER */
+#split-wrap{position:absolute;inset:0;pointer-events:none;z-index:11;display:none;align-items:center;}
+#split-wrap.v{display:flex;}
+#split-line{position:absolute;top:0;bottom:0;width:2px;background:var(--ac);box-shadow:0 0 10px rgba(232,255,71,.5);left:50%;pointer-events:auto;cursor:ew-resize;display:flex;align-items:center;justify-content:center;}
+#split-handle{width:36px;height:36px;border-radius:50%;background:var(--ac);border:4px solid var(--bg);display:flex;align-items:center;justify-content:center;color:#000;box-shadow:0 4px 15px rgba(0,0,0,.4);}
+#split-handle svg{width:16px;height:16px;}
+#split-label-orig,#split-label-edit{position:absolute;top:1rem;padding:.3rem .6rem;background:rgba(0,0,0,.6);border-radius:4px;font-size:.5rem;color:#fff;letter-spacing:.1em;text-transform:uppercase;pointer-events:none;}
+#split-label-orig{left:1rem;}
+#split-label-edit{right:1rem;}
 </style>
 </head>
 <body>
@@ -321,6 +321,14 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="5"/><circle cx="8" cy="8" r="2"/></svg>
       Hold: Original
     </button>
+    <!-- Split Slider -->
+    <div id="split-wrap">
+      <div id="split-label-orig">Original</div>
+      <div id="split-label-edit">Edited</div>
+      <div id="split-line">
+        <div id="split-handle"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 3l-4 5 4 5M10 3l4 5-4 5"/></svg></div>
+      </div>
+    </div>
     <!-- Crop bar -->
     <div id="crb"><button class="cb no" id="btn-cr-cancel">Cancel</button><button class="cb ok" id="btn-cr-ok">Apply Crop</button></div>
     <!-- Mobile format -->
@@ -427,7 +435,7 @@ const PACKS = [
   ]},
   { pack:'Cinematic', filters:[
     { id:'bleach',     name:'Bleach Bypass',  p:{ r:[.0,.0,.5,.56,.95,.96], g:[.0,.0,.5,.55,.95,.93], b:[.0,.0,.5,.55,.95,.94], sat:0.40, vi:0.32, gr:0.050, wt:0, wb:0, tsh:[1,1,1], thl:[1,1,1] }},
-    { id:'teal_og',    name:'Teal & Orange',  p:{ r:[.0,.0,.5,.58,.95,1.0], g:[.05,.06,.5,.52,.95,.94], b:[.0,.04,.5,.44,.95,.88], sat:1.22, vi:0.16, gr:0.015, wt:0, wb:0, tsh:[0,2,4], thl:[4,2,0] }},
+    { id:'teal_og',    name:'Teal & Orange',  p:{ r:[.0,.0,.5,.58,.95,1.0], g:[.05,.06,.5,.52,.95,.94], b:[.0,.04,.5,.44,.95,.88], sat:1.15, vi:0.18, gr:0.012, wt:0, wb:0, tsh:[0,2,4], thl:[4,2,0], hsl1:[1.4,1.4,1.0,0.8], hsl2:[0.7,0.6,0.6,1.2] }},
     { id:'moonlight',  name:'Moonlight',      p:{ r:[.05,.055,.5,.52,.9,.88], g:[.05,.06,.5,.53,.9,.9], b:[.05,.07,.5,.56,.9,.94], sat:0.55, vi:0.28, gr:0.036, wt:-12, wb:-4, tsh:[-1,0,3], thl:[-1,0,3] }},
     { id:'crimson',    name:'Crimson',        p:{ r:[.05,.08,.5,.56,.9,.96], g:[.05,.05,.5,.51,.9,.87], b:[.05,.04,.5,.49,.9,.86], sat:1.12, vi:0.22, gr:0.022, wt:-8, wb:-3, tsh:[3,-1,-1], thl:[2,-1,-1] }},
     { id:'amber',      name:'Amber',          p:{ r:[.05,.09,.5,.56,.95,.98], g:[.05,.07,.5,.53,.9,.9], b:[.05,.04,.5,.46,.9,.84], sat:1.05, vi:0.14, gr:0.018, wt:15, wb:5, tsh:[3,1,-2], thl:[3,1,-3] }},
@@ -456,10 +464,9 @@ const GL = (() => {
   const FS = `
     precision highp float;
     uniform sampler2D img;varying vec2 v;
-    // Per-channel curves (4 control points each, linear interpolation)
+    // Per-channel curves (4 control points each)
     uniform vec4 rc,gc2,bc;  // curve x values
     uniform vec4 rcv,gcv,bcv; // curve y values
-    uniform int rcn,gcn,bcn; // point count
     uniform float sat,vi,gr,seed;
     // HSL warmth/shift
     uniform float wt,wb;
@@ -467,59 +474,99 @@ const GL = (() => {
     uniform vec3 tsh,thl;
     // User adj
     uniform float ab,ac2,as2,aw,ash,ahl;
+    // Selective HSL (R,O,Y,G,C,B,P,M) - Saturation shifts
+    uniform vec4 hsl_sat1, hsl_sat2; 
+    // Comparison slider
+    uniform float splitPos;
 
     vec3 r2h(vec3 c){float mx=max(c.r,max(c.g,c.b)),mn=min(c.r,min(c.g,c.b)),l=(mx+mn)/2.,s=0.,h=0.,d=mx-mn;if(d>.0001){s=l>.5?d/(2.-mx-mn):d/(mx+mn);if(mx==c.r)h=(c.g-c.b)/d+(c.g<c.b?6.:0.);else if(mx==c.g)h=(c.b-c.r)/d+2.;else h=(c.r-c.g)/d+4.;h/=6.;}return vec3(h,s,l);}
     float hr(float p2,float q,float t){if(t<0.)t+=1.;if(t>1.)t-=1.;if(t<1./6.)return p2+(q-p2)*6.*t;if(t<.5)return q;if(t<2./3.)return p2+(q-p2)*(2./3.-t)*6.;return p2;}
     vec3 h2r(vec3 h){if(h.y<.001)return vec3(h.z);float q=h.z<.5?h.z*(1.+h.y):h.z+h.y-h.z*h.y,p2=2.*h.z-q;return vec3(hr(p2,q,h.x+1./3.),hr(p2,q,h.x),hr(p2,q,h.x-1./3.));}
 
-    float curve4(float x, vec4 xs, vec4 ys){
-      if(x<=xs[0])return ys[0];
-      if(x>=xs[3])return ys[3];
-      float t;vec2 y01,y12;
-      if(x<xs[1]){t=(x-xs[0])/(xs[1]-xs[0]);return mix(ys[0],ys[1],t);}
-      if(x<xs[2]){t=(x-xs[1])/(xs[2]-xs[1]);return mix(ys[1],ys[2],t);}
-      t=(x-xs[2])/(xs[3]-xs[2]);return mix(ys[2],ys[3],t);
+    // Cubic Spline Interpolation for smoother curves
+    float spline(float x, vec4 xs, vec4 ys) {
+      if(x <= xs[0]) return ys[0];
+      if(x >= xs[3]) return ys[3];
+      int i = 0;
+      if(x > xs[2]) i = 2; else if(x > xs[1]) i = 1;
+      
+      float x0 = (i==0) ? xs[0] : xs[i-1];
+      float x1 = xs[i];
+      float x2 = xs[i+1];
+      float x3 = (i==2) ? xs[3] : xs[i+2];
+      
+      float y0 = (i==0) ? ys[0] : ys[i-1];
+      float y1 = ys[i];
+      float y2 = ys[i+1];
+      float y3 = (i==2) ? ys[3] : ys[i+2];
+      
+      float t = (x - x1) / (x2 - x1);
+      float t2 = t * t;
+      float t3 = t2 * t;
+      
+      // Catmull-Rom Spline
+      float f0 = -0.5*t3 + t2 - 0.5*t;
+      float f1 = 1.5*t3 - 2.5*t2 + 1.0;
+      float f2 = -1.5*t3 + 2.0*t2 + 0.5*t;
+      float f3 = 0.5*t3 - 0.5*t2;
+      
+      return clamp(y0*f0 + y1*f1 + y2*f2 + y3*f3, 0.0, 1.0);
     }
 
     float rand(vec2 co){return fract(sin(dot(co+seed,vec2(12.9898,78.233)))*43758.5453);}
 
     void main(){
-      vec4 o=texture2D(img,v);vec3 c=o.rgb;
+      vec4 o = texture2D(img, v);
+      if (v.x < splitPos) { gl_FragColor = o; return; }
+      
+      vec3 c = o.rgb;
 
-      // Per-channel curves
-      c.r=curve4(c.r,rc,rcv);
-      c.g=curve4(c.g,gc2,gcv);
-      c.b=curve4(c.b,bc,bcv);
+      // Curves with Spline
+      c.r = spline(c.r, rc, rcv);
+      c.g = spline(c.g, gc2, gcv);
+      c.b = spline(c.b, bc, bcv);
 
-      // Saturation
-      vec3 hsl=r2h(c);
-      // Warmth (hue shift + temp)
-      float totalHue=(wt+wb+aw)/360.;
-      hsl.x=fract(hsl.x+totalHue);
-      hsl.y=clamp(hsl.y*(sat+as2*.012),0.,1.);
-      c=h2r(hsl);
+      // HSL Processing
+      vec3 hsl = r2h(c);
+      
+      // Selective Saturation (Red, Orange, Yellow, Green, Cyan, Blue, Purple, Magenta)
+      float h = hsl.x * 8.0;
+      float sMult = 1.0;
+      if (h < 1.0) sMult = mix(hsl_sat2.w, hsl_sat1.x, h);
+      else if (h < 2.0) sMult = mix(hsl_sat1.x, hsl_sat1.y, h - 1.0);
+      else if (h < 3.0) sMult = mix(hsl_sat1.y, hsl_sat1.z, h - 2.0);
+      else if (h < 4.0) sMult = mix(hsl_sat1.z, hsl_sat1.w, h - 3.0);
+      else if (h < 5.0) sMult = mix(hsl_sat1.w, hsl_sat2.x, h - 4.0);
+      else if (h < 6.0) sMult = mix(hsl_sat2.x, hsl_sat2.y, h - 5.0);
+      else if (h < 7.0) sMult = mix(hsl_sat2.y, hsl_sat2.z, h - 6.0);
+      else sMult = mix(hsl_sat2.z, hsl_sat2.w, h - 7.0);
+      
+      hsl.y *= sMult;
+
+      // Warmth/Global Saturation
+      float totalHue = (wt+wb+aw)/360.;
+      hsl.x = fract(hsl.x + totalHue);
+      hsl.y = clamp(hsl.y * (sat + as2*.012), 0., 1.5); // Allow boost
+      c = h2r(hsl);
 
       // Split toning
-      float lum=dot(c,vec3(.299,.587,.114));
-      float shMask=1.-smoothstep(0.,.5,lum);
-      float hlMask=smoothstep(.5,1.,lum);
-      c+=(tsh/255.)*.35*shMask;
-      c+=(thl/255.)*.35*hlMask;
+      float lum = dot(c, vec3(.299,.587,.114));
+      float shMask = 1.0 - smoothstep(0.0, 0.5, lum);
+      float hlMask = smoothstep(0.5, 1.0, lum);
+      c += (tsh/255.0) * 0.35 * shMask;
+      c += (thl/255.0) * 0.35 * hlMask;
 
-      // User shadows/highlights
-      c+=(ash*.008)*shMask;
-      c+=(ahl*.008)*hlMask;
+      // User adj
+      c += (ash*0.008) * shMask;
+      c += (ahl*0.008) * hlMask;
+      c *= 1.0 + ab*0.012;
+      c = (c-0.5) * (1.0 + ac2*0.015) + 0.5;
 
-      // User brightness/contrast
-      c*=1.+ab*.012;
-      c=(c-.5)*(1.+ac2*.015)+.5;
-
-      // Vignette
+      // Vignette & Grain
       if(vi>0.){vec2 uv2=v*2.-1.;c*=clamp(1.-dot(uv2,uv2)*vi,0.,1.);}
-      // Grain
       if(gr>0.)c+=(rand(v)*2.-1.)*gr;
 
-      gl_FragColor=vec4(clamp(c,0.,1.),o.a);
+      gl_FragColor = vec4(clamp(c,0.0,1.0), o.a);
     }
   `;
 
@@ -557,7 +604,7 @@ const GL = (() => {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, im);
   }
 
-  function dr(f, adj, w, h) {
+    function dr(f, adj, w, h, splitPos = 0) {
     glCanvas.width = w; glCanvas.height = h;
     gl.viewport(0, 0, w, h);
 
@@ -576,8 +623,11 @@ const GL = (() => {
       u1('wt', p.wt || 0); u1('wb', p.wb || 0);
       u3('tsh', p.tsh || [0,0,0]);
       u3('thl', p.thl || [0,0,0]);
+      
+      // Selective HSL from filter preset if any
+      uv4('hsl_sat1', p.hsl1 || [1,1,1,1]);
+      uv4('hsl_sat2', p.hsl2 || [1,1,1,1]);
     } else {
-      // Identity
       const id = [0, 0.33, 0.66, 1.0];
       uv4('rc', id); uv4('rcv', id);
       uv4('gc2', id); uv4('gcv', id);
@@ -585,10 +635,12 @@ const GL = (() => {
       u1('sat', 1); u1('vi', 0); u1('gr', 0);
       u1('wt', 0); u1('wb', 0);
       u3('tsh', [0,0,0]); u3('thl', [0,0,0]);
+      uv4('hsl_sat1', [1,1,1,1]); uv4('hsl_sat2', [1,1,1,1]);
     }
     u1('ab', adj.brightness||0); u1('ac2', adj.contrast||0);
     u1('as2', adj.saturation||0); u1('aw', adj.warmth||0);
     u1('ash', adj.shadows||0); u1('ahl', adj.highlights||0);
+    u1('splitPos', splitPos);
     u1('seed', Math.random());
     gl.uniform1i(gl.getUniformLocation(pg,'img'), 0);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -627,6 +679,8 @@ const S = {
   hist: [], histL: [],
   // AI model
   tfModel: null, tfLoading: false,
+  // UI
+  splitPos: 0,
 };
 const isMob = () => window.innerWidth < 768;
 
@@ -672,7 +726,7 @@ function renderGL(immediate) {
     renderPending = false;
     if (!S.imgOrig) return;
     GL.si(S.imgOrig);
-    GL.dr(S.filter, S.adj, S.imgOrig.naturalWidth, S.imgOrig.naturalHeight);
+    GL.dr(S.filter, S.adj, S.imgOrig.naturalWidth, S.imgOrig.naturalHeight, S.splitPos);
     const url = glCanvas.toDataURL();
     const tmp = new Image();
     tmp.onload = () => {
@@ -760,7 +814,7 @@ function setTool(t) {
   if (t === 'crop') {
     document.getElementById('ss-crop').classList.add('on');
     if (isMob()) document.getElementById('fmb').classList.add('v');
-    if (S.has) { setTimeout(() => enterCrop(), 50); }
+    if (S.has) { enterCrop(); }
   }
   if (t === 'adjust') {
     document.getElementById('ss-adj').classList.add('on');
@@ -823,6 +877,51 @@ peekBtn.addEventListener('mousedown', startPeek);
 peekBtn.addEventListener('touchstart', e => { e.preventDefault(); startPeek(); }, { passive: false });
 document.addEventListener('mouseup', endPeek);
 document.addEventListener('touchend', endPeek);
+
+// ─── SPLIT SLIDER ───
+const splitWrap = document.getElementById('split-wrap');
+const splitLine = document.getElementById('split-line');
+let splitActive = false;
+
+function initSplitSlider() {
+  if (!S.has) return;
+  splitWrap.classList.add('v');
+  updateSplit(0.5);
+}
+
+function updateSplit(pct) {
+  S.splitPos = pct;
+  splitLine.style.left = (pct * 100) + '%';
+  renderGL();
+}
+
+splitLine.addEventListener('mousedown', e => { splitActive = true; e.preventDefault(); });
+document.addEventListener('mousemove', e => {
+  if (!splitActive) return;
+  const rect = document.getElementById('cv').getBoundingClientRect();
+  let pct = (e.clientX - rect.left) / rect.width;
+  updateSplit(Math.max(0, Math.min(1, pct)));
+});
+document.addEventListener('mouseup', () => splitActive = false);
+
+splitLine.addEventListener('touchstart', e => { splitActive = true; e.preventDefault(); }, { passive: false });
+document.addEventListener('touchmove', e => {
+  if (!splitActive) return;
+  const rect = document.getElementById('cv').getBoundingClientRect();
+  let pct = (e.touches[0].clientX - rect.left) / rect.width;
+  updateSplit(Math.max(0, Math.min(1, pct)));
+}, { passive: false });
+document.addEventListener('touchend', () => splitActive = false);
+
+// Toggle split on badge click
+document.getElementById('ba-badge').addEventListener('click', () => {
+  if (splitWrap.classList.contains('v')) {
+    splitWrap.classList.remove('v');
+    updateSplit(0);
+  } else {
+    initSplitSlider();
+  }
+});
 
 // ─── ADJ ROWS ───
 const ADEFS = [
@@ -1186,17 +1285,21 @@ function displayScore(score, metrics) {
 
   // Suggestions
   const sugs = [];
-  if (metrics.exposure < 0.45) sugs.push('→ Increase brightness — image appears underexposed');
-  if (metrics.exposure > 0.85) sugs.push('→ Reduce highlights — image appears overexposed');
-  if (metrics.contrast < 0.3) sugs.push('→ Boost contrast for more punch');
-  if (metrics.sharpness < 0.35) sugs.push('→ Image may be slightly blurred');
-  if (metrics.colorfulness < 0.25) sugs.push('→ Try Velvia or Ektar for more color vibrancy');
-  if (S.filter.id === 'none') sugs.push('→ Apply a film filter to enhance mood');
-  if (metrics.tonalRange < 0.4) sugs.push('→ Use Shadows/Highlights to expand tonal range');
+  if (metrics.exposure < 0.4) sugs.push('→ Lift shadows or increase exposure — the mood is a bit heavy.');
+  if (metrics.exposure > 0.85) sugs.push('→ Pull back highlights — some details are getting lost in the light.');
+  if (metrics.contrast < 0.3) sugs.push('→ Add contrast — the image feels a bit "flat".');
+  if (metrics.sharpness < 0.3) sugs.push('→ Clarity could be higher — the image appears slightly soft.');
+  if (metrics.colorfulness < 0.2) sugs.push('→ The colors are muted. Try Velvia or Portra for a classic pop.');
+  if (S.filter.id === 'none') sugs.push('→ Try a cinematic filter like "Teal & Orange" or "Classic Chrome".');
+  if (metrics.tonalRange < 0.45) sugs.push('→ Tonal depth is shallow. Try using Curves to deepen the blacks.');
+  if (metrics.composite > 8.5) sugs.push('→ Stunning! The composition and grading are professional grade.');
+  else if (metrics.composite > 7.0) sugs.push('→ Great shot. A slight tweak to the shadows could make it pop.');
 
   if (sugs.length > 0) {
     const sugEl = document.getElementById('sc-sug');
-    document.getElementById('sc-sug-list').innerHTML = sugs.map(s => `<div class="sc-sug-item">${s}</div>`).join('');
+    // Pick 3 best suggestions
+    const displaySugs = sugs.sort(() => .5 - Math.random()).slice(0, 3);
+    document.getElementById('sc-sug-list').innerHTML = displaySugs.map(s => `<div class="sc-sug-item">${s}</div>`).join('');
     sugEl.style.display = 'block';
   }
 }
