@@ -246,8 +246,20 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 .sfp{font-size:.48rem;color:var(--mu2);letter-spacing:.05em;margin-top:.07rem;}
 
 /* RIGHT PANEL */
-#rp{grid-area:rp;display:none;flex-direction:column;background:var(--bg);border-left:1px solid var(--bd);overflow:hidden;}
 .rps{padding:.6rem .6rem;border-bottom:1px solid var(--bd);flex-shrink:0;}
+
+/* CAMERA MODE */
+#cam-wrap{position:absolute;inset:0;background:#000;z-index:100;display:none;flex-direction:column;align-items:center;justify-content:center;}
+#cam-wrap.v{display:flex;}
+#v-preview{width:100%;height:100%;object-fit:cover;}
+.cam-ui{position:absolute;inset:0;display:flex;flex-direction:column;pointer-events:none;}
+.cam-top{padding:1rem;display:flex;justify-content:flex-end;pointer-events:auto;}
+.cam-bot{margin-top:auto;padding:2rem;display:flex;justify-content:center;align-items:center;gap:2rem;pointer-events:auto;background:linear-gradient(transparent,rgba(0,0,0,.6));}
+.shutter{width:70px;height:70px;border-radius:50%;border:4px solid #fff;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .1s;}
+.shutter:active{transform:scale(.9);}
+.shutter-in{width:54px;height:54px;border-radius:50%;background:#fff;}
+.cam-btn{background:rgba(255,255,255,.15);border:none;border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;backdrop-filter:blur(5px);}
+#cam-msg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--mu2);font-family:'DM Mono',monospace;font-size:.6rem;letter-spacing:.1em;text-align:center;}
 .rpt{font-size:.5rem;letter-spacing:.22em;text-transform:uppercase;color:var(--mu2);margin-bottom:.6rem;}
 .rfg{display:grid;grid-template-columns:repeat(5,1fr);gap:.2rem;}
 .rfb{padding:.34rem .1rem;border-radius:4px;border:1px solid var(--bd);background:var(--sf);cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:.06rem;}
@@ -311,8 +323,11 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
   <!-- CANVAS -->
   <div id="cv">
     <label id="us" for="fi">
-      <div class="uz"><div class="up">+</div><div class="ul">Upload</div></div>
-      <div class="uh">Drop any photo.<br/>Make it cinematic.</div>
+      <div class="uz">
+        <div class="up" onclick="document.getElementById('fi').click()">+</div>
+        <div class="ul">Upload</div>
+      </div>
+      <div class="uh">Drop any photo or <span style="color:var(--ac);cursor:pointer;text-decoration:underline;" id="btn-open-cam">Start Camera</span></div>
       <div class="ud">47 smart & cinematic filters · Per-channel curves · HSL color grading<br/>AI aesthetic scoring · Before/After compare · Instagram export</div>
       <div class="uc"><span class="chip">JPG</span><span class="chip">PNG</span><span class="chip">WEBP</span><span class="chip">HEIC</span></div>
     </label>
@@ -393,9 +408,27 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
     <button class="mt" data-tool="filter"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="11" y="3" width="6" height="6" rx="1"/><rect x="3" y="11" width="6" height="6" rx="1"/><rect x="11" y="11" width="6" height="6" rx="1"/></svg><span class="mt-l">Filters</span></button>
     <button class="mt" data-tool="score"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="6"/><circle cx="10" cy="10" r="2.5"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="10" y1="16" x2="10" y2="18"/><line x1="2" y1="10" x2="4" y2="10"/><line x1="16" y1="10" x2="18" y2="10"/></svg><span class="mt-l">AI Score</span></button>
   </div>
-</div>
+  <!-- CAMERA WRAP -->
+  <div id="cam-wrap">
+    <video id="v-preview" autoplay playsinline muted></video>
+    <div id="cam-msg">INITIALIZING CAMERA...</div>
+    <div class="cam-ui">
+      <div class="cam-top">
+        <button class="cam-btn" id="btn-cam-close">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l10 10M13 3L3 13"/></svg>
+        </button>
+      </div>
+      <div class="cam-bot">
+        <button class="cam-btn" id="btn-cam-flip">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 8a6 6 0 11-12 0 6 6 0 0112 0zM8 2v4M2 8h4"/></svg>
+        </button>
+        <div class="shutter" id="btn-shutter"><div class="shutter-in"></div></div>
+        <div style="width:44px;"></div> <!-- spacer -->
+      </div>
+    </div>
+  </div>
 
-<!-- EXPORT -->
+  <!-- EXPORT -->
 <div id="ep">
   <div class="eh">Export Photo</div>
   <div class="epw"><img id="epi" src="" alt=""/><div class="ebr"><span class="eb hi" id="efb" style="display:none"></span><span class="eb" id="edb">—</span></div></div>
@@ -508,7 +541,7 @@ const GL = (() => {
     precision highp float;
     uniform sampler2D img;varying vec2 v;
     uniform vec4 rc,gc2,bc,rcv,gcv,bcv;
-    uniform float sat,vi,gr,seed,wt,wb,ab,ac2,as2,aw,ash,ahl,splitPos,halation,bloom,diffusion;
+    uniform float sat,vi,gr,seed,wt,wb,ab,ac2,as2,aw,ash,ahl,splitPos,halation,bloom,diffusion,u_intensity;
     uniform vec3 tsh,thl; uniform vec4 hsl_sat1, hsl_sat2;
 
     vec3 r2h(vec3 c){float mx=max(c.r,max(c.g,c.b)),mn=min(c.r,min(c.g,c.b)),l=(mx+mn)/2.,s=0.,h=0.,d=mx-mn;if(d>.0001){s=l>.5?d/(2.-mx-mn):d/(mx+mn);if(mx==c.r)h=(c.g-c.b)/d+(c.g<c.b?6.:0.);else if(mx==c.g)h=(c.b-c.r)/d+2.;else h=(c.r-c.g)/d+4.;h/=6.;}return vec3(h,s,l);}
@@ -558,7 +591,7 @@ const GL = (() => {
       c *= 1.0 + ab*0.012; c = (c-0.5) * (1.0 + ac2*0.015) + 0.5;
       if(vi>0.){vec2 uv2=v*2.-1.;c*=clamp(1.-dot(uv2,uv2)*vi,0.,1.);}
       if(gr>0.) c += (rand(v + seed) * 2.0 - 1.0) * gr * (1.0 - abs(lum * 2.0 - 1.0));
-      gl_FragColor = vec4(clamp(c,0.0,1.0), o.a);
+      gl_FragColor = vec4(clamp(mix(o.rgb, c, u_intensity), 0.0, 1.0), o.a);
     }
   `;
 
@@ -612,6 +645,7 @@ const GL = (() => {
     u1('ab', adj.brightness||0); u1('ac2', adj.contrast||0); u1('as2', adj.saturation||0); u1('aw', adj.warmth||0);
     u1('ash', adj.shadows||0); u1('ahl', adj.highlights||0); u1('splitPos', splitPos); u1('seed', Math.random());
     gl.uniform1i(gl.getUniformLocation(pg,'img'), 0);
+    u1('u_intensity', (adj.intensity !== undefined ? adj.intensity : 100) / 100.0);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
 
@@ -644,7 +678,7 @@ function renderThumb(filter, targetCanvas) {
 const S = {
   has: false, tool: 'crop',
   fmt: { ratio:'1:1', w:1080, h:1080 },
-  adj: { brightness:0, contrast:0, saturation:0, warmth:0, shadows:0, highlights:0 },
+  adj: { brightness:0, contrast:0, saturation:0, warmth:0, shadows:0, highlights:0, intensity: 100 },
   filter: FLAT[0],
   imgOrig: null, imgOrigUrl: null,
   // Konva
@@ -727,20 +761,24 @@ function loadImg(file) {
       // Mobile optimization: Downscale if too large
       let finalIm = im;
       const maxDim = isMob() ? 2048 : 4096;
-      if (im.width > maxDim || im.height > maxDim) {
-        const sc = maxDim / Math.max(im.width, im.height);
+      const gpuMax = gl ? gl.getParameter(gl.MAX_TEXTURE_SIZE) : 2048;
+      const limit = Math.min(maxDim, gpuMax);
+
+      if (im.width > limit || im.height > limit) {
+        const sc = limit / Math.max(im.width, im.height);
         const tc = document.createElement('canvas');
         tc.width = im.width * sc; tc.height = im.height * sc;
         const tctx = tc.getContext('2d');
         tctx.drawImage(im, 0, 0, tc.width, tc.height);
         const nim = new Image();
-        await new Promise(res => { nim.onload = res; nim.src = tc.toDataURL('image/jpeg', 0.9); });
+        await new Promise(res => { nim.onload = res; nim.src = tc.toDataURL('image/jpeg', 0.85); });
         finalIm = nim;
       }
       
       S.imgOrig = finalIm;
       S.imgOrigUrl = finalIm.src;
       S.has = true; S.filter = FLAT[0];
+      S.adj.intensity = 100;
       renderGL(true);
       buildThumbs();
       showEditorUI();
@@ -922,6 +960,7 @@ const ADEFS = [
   {id:'warmth',l:'Warmth'},
   {id:'shadows',l:'Shadows'},
   {id:'highlights',l:'Highlights'},
+  {id:'intensity',l:'Filter Strength'},
 ];
 
 function buildAdjRows() {
@@ -939,7 +978,7 @@ function buildAdjRows() {
               </button>
             </div>
           </div>
-          <input type="range" id="ar-${id}-${sfx}" min="-100" max="100" value="0"/>
+          <input type="range" id="ar-${id}-${sfx}" min="${id==='intensity'?0:-100}" max="100" value="${id==='intensity'?100:0}"/>
         </div>`;
     });
     ADEFS.forEach(({id}) => {
@@ -950,13 +989,81 @@ function buildAdjRows() {
   });
 }
 function syncSlider(id, v) {
+  S.adj[id] = v;
   const d = v > 0 ? '+' + v : String(v);
   ['s','m'].forEach(sfx => {
     const sl = document.getElementById(`ar-${id}-${sfx}`);
     const vl = document.getElementById(`av-${id}-${sfx}`);
-    if (sl) sl.value = v; if (vl) vl.textContent = d;
+    if (sl) sl.value = v; if (vl) vl.textContent = (id==='intensity'?v+'%':d);
   });
 }
+
+// ─── CAMERA LOGIC ───
+let camStream = null;
+let camFacing = 'user';
+
+async function startCam() {
+  const wrap = document.getElementById('cam-wrap');
+  const video = document.getElementById('v-preview');
+  const msg = document.getElementById('cam-msg');
+  wrap.classList.add('v');
+  msg.style.display = 'block';
+  
+  try {
+    if (camStream) stopCam();
+    camStream = await navigator.mediaDevices.getUserMedia({ 
+      video: { facingMode: camFacing, width: { ideal: 1920 }, height: { ideal: 1080 } }, 
+      audio: false 
+    });
+    video.srcObject = camStream;
+    msg.style.display = 'none';
+    toast('Camera active', 'hi');
+  } catch (err) {
+    console.error(err);
+    msg.textContent = "CAMERA ACCESS DENIED OR NOT FOUND";
+    setTimeout(() => wrap.classList.remove('v'), 2000);
+  }
+}
+
+function stopCam() {
+  if (camStream) {
+    camStream.getTracks().forEach(t => t.stop());
+    camStream = null;
+  }
+  document.getElementById('cam-wrap').classList.remove('v');
+}
+
+function capture() {
+  const video = document.getElementById('v-preview');
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  // Flip if front cam
+  if (camFacing === 'user') {
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+  }
+  ctx.drawImage(video, 0, 0);
+  
+  const img = new Image();
+  img.onload = () => {
+    S.imgOrig = img;
+    S.imgOrigUrl = canvas.toDataURL('image/jpeg', 0.95);
+    stopCam();
+    S.has = true; S.filter = FLAT[0]; S.adj.intensity = 100;
+    renderGL(true); buildThumbs(); showEditorUI(); pushHist('Capture');
+  };
+  img.src = canvas.toDataURL('image/jpeg', 0.95);
+}
+
+document.getElementById('btn-open-cam').addEventListener('click', startCam);
+document.getElementById('btn-cam-close').addEventListener('click', stopCam);
+document.getElementById('btn-shutter').addEventListener('click', capture);
+document.getElementById('btn-cam-flip').addEventListener('click', () => {
+  camFacing = camFacing === 'user' ? 'environment' : 'user';
+  startCam();
+});
 
 // ─── FORMAT ───
 function bindFmtBtns() {
