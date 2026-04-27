@@ -448,6 +448,12 @@ const PACKS = [
     { id:'expired',    name:'Expired Film',   p:{ r:[.05,.12,.5,.57,.9,.92], g:[.05,.10,.5,.54,.9,.88], b:[.05,.06,.5,.50,.9,.82], sat:0.78, vi:0.12, gr:0.068, wt:20, wb:8, tsh:[4,1,-2], thl:[4,1,-2] }},
     { id:'matte',      name:'Matte',          p:{ r:[.0,.08,.5,.55,.95,.93], g:[.0,.07,.5,.54,.95,.93], b:[.0,.07,.5,.54,.95,.93], sat:0.88, vi:0.06, gr:0.022, wt:3, wb:1, tsh:[2,2,2], thl:[2,2,2] }},
   ]},
+  { pack:'2026 Trends', filters:[
+    { id:'digi_flash', name:'Digi Flash',    p:{ r:[.05,.04,.4,.48,.9,1.], g:[.05,.05,.5,.52,.95,.98], b:[.1,.15,.6,.65,1.,1.], sat:1.3, vi:0.0, gr:0.02, wt:0, wb:0, bloom:0.8, diffusion:0.4, hsl2:[1.1,1.1,1.1,1.5] }},
+    { id:'y2k_cyber',  name:'Y2K Cyber',     p:{ r:[0,.05,.5,.45,1.,.9], g:[0,.1,.5,.55,1.,1.], b:[0,.15,.5,.65,1.,1.], sat:1.6, vi:0.25, gr:0.05, wt:-10, wb:-5, bloom:1.2, halation:0.5 }},
+    { id:'film_halo',  name:'Film Halation', p:{ r:[.05,.08,.5,.56,.95,.97], g:[.05,.07,.5,.52,.95,.95], b:[.05,.07,.5,.52,.95,.92], sat:1.0, vi:0.12, gr:0.04, halation:1.5, bloom:0.3 }},
+    { id:'dream_soft', name:'Dream Soft',    p:{ r:[.1,.2,.5,.55,.8,.85], g:[.1,.2,.5,.55,.8,.85], b:[.1,.2,.5,.55,.8,.85], sat:0.9, vi:0.05, gr:0.01, diffusion:1.8, bloom:1.0 }},
+  ]},
 ];
 const FLAT = PACKS.flatMap(pk => pk.filters);
 
@@ -478,38 +484,21 @@ const GL = (() => {
     uniform vec4 hsl_sat1, hsl_sat2; 
     // Comparison slider
     uniform float splitPos;
+    // Film effects
+    uniform float halation, bloom, diffusion;
 
     vec3 r2h(vec3 c){float mx=max(c.r,max(c.g,c.b)),mn=min(c.r,min(c.g,c.b)),l=(mx+mn)/2.,s=0.,h=0.,d=mx-mn;if(d>.0001){s=l>.5?d/(2.-mx-mn):d/(mx+mn);if(mx==c.r)h=(c.g-c.b)/d+(c.g<c.b?6.:0.);else if(mx==c.g)h=(c.b-c.r)/d+2.;else h=(c.r-c.g)/d+4.;h/=6.;}return vec3(h,s,l);}
     float hr(float p2,float q,float t){if(t<0.)t+=1.;if(t>1.)t-=1.;if(t<1./6.)return p2+(q-p2)*6.*t;if(t<.5)return q;if(t<2./3.)return p2+(q-p2)*(2./3.-t)*6.;return p2;}
     vec3 h2r(vec3 h){if(h.y<.001)return vec3(h.z);float q=h.z<.5?h.z*(1.+h.y):h.z+h.y-h.z*h.y,p2=2.*h.z-q;return vec3(hr(p2,q,h.x+1./3.),hr(p2,q,h.x),hr(p2,q,h.x-1./3.));}
 
-    // Cubic Spline Interpolation for smoother curves
     float spline(float x, vec4 xs, vec4 ys) {
       if(x <= xs[0]) return ys[0];
       if(x >= xs[3]) return ys[3];
-      int i = 0;
-      if(x > xs[2]) i = 2; else if(x > xs[1]) i = 1;
-      
-      float x0 = (i==0) ? xs[0] : xs[i-1];
-      float x1 = xs[i];
-      float x2 = xs[i+1];
-      float x3 = (i==2) ? xs[3] : xs[i+2];
-      
-      float y0 = (i==0) ? ys[0] : ys[i-1];
-      float y1 = ys[i];
-      float y2 = ys[i+1];
-      float y3 = (i==2) ? ys[3] : ys[i+2];
-      
-      float t = (x - x1) / (x2 - x1);
-      float t2 = t * t;
-      float t3 = t2 * t;
-      
-      // Catmull-Rom Spline
-      float f0 = -0.5*t3 + t2 - 0.5*t;
-      float f1 = 1.5*t3 - 2.5*t2 + 1.0;
-      float f2 = -1.5*t3 + 2.0*t2 + 0.5*t;
-      float f3 = 0.5*t3 - 0.5*t2;
-      
+      int i = 0; if(x > xs[2]) i = 2; else if(x > xs[1]) i = 1;
+      float x1 = xs[i], x2 = xs[i+1];
+      float y0 = (i==0) ? ys[0] : ys[i-1], y1 = ys[i], y2 = ys[i+1], y3 = (i==2) ? ys[3] : ys[i+2];
+      float t = (x - x1) / (x2 - x1), t2 = t * t, t3 = t2 * t;
+      float f0 = -0.5*t3 + t2 - 0.5*t, f1 = 1.5*t3 - 2.5*t2 + 1.0, f2 = -1.5*t3 + 2.0*t2 + 0.5*t, f3 = 0.5*t3 - 0.5*t2;
       return clamp(y0*f0 + y1*f1 + y2*f2 + y3*f3, 0.0, 1.0);
     }
 
@@ -520,18 +509,16 @@ const GL = (() => {
       if (v.x < splitPos) { gl_FragColor = o; return; }
       
       vec3 c = o.rgb;
+      float lum = dot(c, vec3(.299,.587,.114));
 
-      // Curves with Spline
+      // 1. Curves
       c.r = spline(c.r, rc, rcv);
       c.g = spline(c.g, gc2, gcv);
       c.b = spline(c.b, bc, bcv);
 
-      // HSL Processing
+      // 2. Selective HSL
       vec3 hsl = r2h(c);
-      
-      // Selective Saturation (Red, Orange, Yellow, Green, Cyan, Blue, Purple, Magenta)
-      float h = hsl.x * 8.0;
-      float sMult = 1.0;
+      float h = hsl.x * 8.0, sMult = 1.0;
       if (h < 1.0) sMult = mix(hsl_sat2.w, hsl_sat1.x, h);
       else if (h < 2.0) sMult = mix(hsl_sat1.x, hsl_sat1.y, h - 1.0);
       else if (h < 3.0) sMult = mix(hsl_sat1.y, hsl_sat1.z, h - 2.0);
@@ -540,31 +527,48 @@ const GL = (() => {
       else if (h < 6.0) sMult = mix(hsl_sat2.x, hsl_sat2.y, h - 5.0);
       else if (h < 7.0) sMult = mix(hsl_sat2.y, hsl_sat2.z, h - 6.0);
       else sMult = mix(hsl_sat2.z, hsl_sat2.w, h - 7.0);
-      
       hsl.y *= sMult;
 
-      // Warmth/Global Saturation
-      float totalHue = (wt+wb+aw)/360.;
-      hsl.x = fract(hsl.x + totalHue);
-      hsl.y = clamp(hsl.y * (sat + as2*.012), 0., 1.5); // Allow boost
+      // 3. Global Color
+      hsl.x = fract(hsl.x + (wt+wb+aw)/360.);
+      hsl.y = clamp(hsl.y * (sat + as2*.012), 0., 2.0);
       c = h2r(hsl);
 
-      // Split toning
-      float lum = dot(c, vec3(.299,.587,.114));
+      // 4. Cinematic Effects (Bloom & Halation)
+      if (halation > 0.0 || bloom > 0.0 || diffusion > 0.0) {
+        float hLight = smoothstep(0.7, 1.0, lum);
+        // Cheap Halation (Red bleed in high-contrast transitions)
+        if (halation > 0.0) {
+          c.r += hLight * halation * 0.12;
+          c.g -= hLight * halation * 0.02;
+          c.b -= hLight * halation * 0.04;
+        }
+        // Bloom/Diffusion (Glow)
+        if (bloom > 0.0 || diffusion > 0.0) {
+          float glow = hLight * (bloom + diffusion);
+          c += vec3(glow * 0.15);
+        }
+      }
+
+      // 5. Split Toning
       float shMask = 1.0 - smoothstep(0.0, 0.5, lum);
       float hlMask = smoothstep(0.5, 1.0, lum);
       c += (tsh/255.0) * 0.35 * shMask;
       c += (thl/255.0) * 0.35 * hlMask;
 
-      // User adj
+      // 6. User Adjustment
       c += (ash*0.008) * shMask;
       c += (ahl*0.008) * hlMask;
       c *= 1.0 + ab*0.012;
       c = (c-0.5) * (1.0 + ac2*0.015) + 0.5;
 
-      // Vignette & Grain
+      // 7. Vignette & Luminance-Aware Grain
       if(vi>0.){vec2 uv2=v*2.-1.;c*=clamp(1.-dot(uv2,uv2)*vi,0.,1.);}
-      if(gr>0.)c+=(rand(v)*2.-1.)*gr;
+      if(gr>0.) {
+        float grain = (rand(v + seed) * 2.0 - 1.0) * gr;
+        float grainMask = 1.0 - abs(lum * 2.0 - 1.0); // More grain in midtones
+        c += grain * grainMask;
+      }
 
       gl_FragColor = vec4(clamp(c,0.0,1.0), o.a);
     }
@@ -623,10 +627,11 @@ const GL = (() => {
       u1('wt', p.wt || 0); u1('wb', p.wb || 0);
       u3('tsh', p.tsh || [0,0,0]);
       u3('thl', p.thl || [0,0,0]);
-      
-      // Selective HSL from filter preset if any
       uv4('hsl_sat1', p.hsl1 || [1,1,1,1]);
       uv4('hsl_sat2', p.hsl2 || [1,1,1,1]);
+      u1('halation', p.halation || 0);
+      u1('bloom', p.bloom || 0);
+      u1('diffusion', p.diffusion || 0);
     } else {
       const id = [0, 0.33, 0.66, 1.0];
       uv4('rc', id); uv4('rcv', id);
@@ -636,6 +641,7 @@ const GL = (() => {
       u1('wt', 0); u1('wb', 0);
       u3('tsh', [0,0,0]); u3('thl', [0,0,0]);
       uv4('hsl_sat1', [1,1,1,1]); uv4('hsl_sat2', [1,1,1,1]);
+      u1('halation', 0); u1('bloom', 0); u1('diffusion', 0);
     }
     u1('ab', adj.brightness||0); u1('ac2', adj.contrast||0);
     u1('as2', adj.saturation||0); u1('aw', adj.warmth||0);
@@ -1114,18 +1120,11 @@ async function runAIScore() {
   document.getElementById('sc-details').innerHTML = '';
   document.getElementById('sc-sug').style.display = 'none';
 
-  // Compute metrics from pixel data directly (fast, no model needed for all metrics)
   const metrics = analyzeImage(S.imgOrig, S.filter, S.adj);
-
-  // TF.js score if model loaded
   let tfScore = null;
   if (S.tfModel) {
-    try {
-      tfScore = await getTFScore(S.imgOrig);
-    } catch(e) { console.warn('TF score failed:', e); }
+    try { tfScore = await getTFScore(S.imgOrig); } catch(e) { console.warn('TF score failed:', e); }
   }
-
-  // Combine: pixel analysis (70%) + TF score (30%) if available
   const finalScore = tfScore !== null
     ? Math.round((metrics.composite * 0.7 + tfScore * 0.3) * 10) / 10
     : metrics.composite;
@@ -1134,94 +1133,41 @@ async function runAIScore() {
 }
 
 function analyzeImage(img, filter, adj) {
-  // Render to small canvas for analysis
-  const ac = document.createElement('canvas');
-  ac.width = 224; ac.height = 224;
-  const actx = ac.getContext('2d');
-  actx.drawImage(img, 0, 0, 224, 224);
-  const px = actx.getImageData(0, 0, 224, 224).data;
-  const n = px.length / 4;
+  const ac = document.createElement('canvas'); ac.width = 224; ac.height = 224;
+  const actx = ac.getContext('2d'); actx.drawImage(img, 0, 0, 224, 224);
+  const px = actx.getImageData(0, 0, 224, 224).data, n = px.length / 4;
 
-  let brightness = 0, rVariance = 0, gVariance = 0, bVariance = 0;
-  let r2 = 0, g2 = 0, b2 = 0, edgeSum = 0;
-  const hist = new Array(256).fill(0);
+  let brightness = 0, r2 = 0, g2 = 0, b2 = 0, rVar = 0;
+  const grid = Array.from({length:3}, () => Array(3).fill(0));
 
   for (let i = 0; i < n; i++) {
     const r = px[i*4]/255, g = px[i*4+1]/255, b = px[i*4+2]/255;
     const lum = .299*r + .587*g + .114*b;
-    brightness += lum;
-    hist[Math.floor(lum * 255)]++;
-    r2 += r; g2 += g; b2 += b;
+    brightness += lum; r2 += r; g2 += g; b2 += b;
+    const gx = Math.floor((i % 224) / (224/3)), gy = Math.floor((i / 224) / (224/3));
+    if (gx < 3 && gy < 3) grid[gy][gx] += lum;
   }
-  brightness /= n; r2 /= n; g2 /= n; b2 /= n;
-
-  // Variance (contrast proxy)
+  brightness /= n;
   for (let i = 0; i < n; i++) {
     const lum = .299*(px[i*4]/255) + .587*(px[i*4+1]/255) + .114*(px[i*4+2]/255);
-    rVariance += (lum - brightness) ** 2;
+    rVar += (lum - brightness) ** 2;
   }
-  rVariance = Math.sqrt(rVariance / n);
+  rVar = Math.sqrt(rVar / n);
 
-  // Histogram spread (tonal range)
-  let histMin = 0, histMax = 255;
-  for (let i = 0; i < 256; i++) { if (hist[i] > n * 0.001) { histMin = i; break; } }
-  for (let i = 255; i >= 0; i--) { if (hist[i] > n * 0.001) { histMax = i; break; } }
-  const tonalRange = (histMax - histMin) / 255;
+  let sX = 1, sY = 1, maxL = 0;
+  for(let y=0;y<3;y++) for(let x=0;x<3;x++) if(grid[y][x] > maxL) { maxL = grid[y][x]; sX = x; sY = y; }
+  const onThird = (sX !== 1 || sY !== 1);
+  const isSymmetric = Math.abs(grid[0][0]-grid[0][2]) + Math.abs(grid[1][0]-grid[1][2]) + Math.abs(grid[2][0]-grid[2][2]) < (maxL * 0.15);
+  const colorfulness = Math.min(1, (Math.abs(r2-g2) + Math.abs(g2-b2) + Math.abs(r2-b2)) * 2);
 
-  // Color balance
-  const colorBalance = 1 - (Math.abs(r2 - g2) + Math.abs(g2 - b2) + Math.abs(r2 - b2)) / 3;
-
-  // Exposure score (penalize over/underexposure)
-  const expScore = 1 - Math.abs(brightness - 0.45) * 2;
-
-  // Saturation variety (colorfulness)
-  let satSum = 0;
-  for (let i = 0; i < n; i++) {
-    const r = px[i*4]/255, g = px[i*4+1]/255, b = px[i*4+2]/255;
-    const mx = Math.max(r,g,b), mn = Math.min(r,g,b);
-    satSum += (mx - mn);
-  }
-  const colorfulness = Math.min(1, (satSum / n) * 2.5);
-
-  // Sharpness proxy (edge detection via simple Laplacian)
-  let lapSum = 0;
-  const w = 224;
-  for (let y = 1; y < 223; y++) {
-    for (let x = 1; x < 223; x++) {
-      const i = (y * w + x) * 4;
-      const center = (.299*px[i] + .587*px[i+1] + .114*px[i+2]) / 255;
-      const left = (.299*px[i-4] + .587*px[i-3] + .114*px[i-2]) / 255;
-      const right = (.299*px[i+4] + .587*px[i+5] + .114*px[i+6]) / 255;
-      const up = (.299*px[i-w*4] + .587*px[i-w*4+1] + .114*px[i-w*4+2]) / 255;
-      const down = (.299*px[i+w*4] + .587*px[i+w*4+1] + .114*px[i+w*4+2]) / 255;
-      lapSum += Math.abs(4*center - left - right - up - down);
-    }
-  }
-  const sharpness = Math.min(1, (lapSum / (222*222)) * 12);
-
-  // Filter bonus (applying a non-trivial filter improves perceived score)
-  const filterBonus = filter.id !== 'none' ? 0.3 : 0;
-
-  // Composite
-  const raw = (
-    Math.max(0, expScore) * 2.0 +
-    rVariance * 8.0 +
-    tonalRange * 1.5 +
-    colorfulness * 1.2 +
-    sharpness * 2.0 +
-    colorBalance * 1.0 +
-    filterBonus
-  ) / 9.0;
-
-  const score = Math.min(9.8, Math.max(3.0, raw * 10));
-
+  const raw = (rVar * 8.0 + (onThird?1.2:0.8) + (isSymmetric?1.1:1.0) + colorfulness * 1.5 + brightness * 0.5) / 10.0;
   return {
-    composite: Math.round(score * 10) / 10,
-    exposure: Math.min(1, Math.max(0, expScore + 0.5)),
-    contrast: Math.min(1, rVariance * 5),
-    colorfulness: Math.min(1, colorfulness * 1.2),
-    sharpness: Math.min(1, sharpness * 1.2),
-    tonalRange: tonalRange,
+    composite: Math.round(Math.min(9.8, Math.max(3.0, raw * 10)) * 10) / 10,
+    exposure: brightness,
+    contrast: Math.min(1, rVar * 5),
+    colorfulness: colorfulness,
+    onThird, isSymmetric,
+    tonalRange: Math.min(1, rVar * 3)
   };
 }
 
@@ -1288,9 +1234,14 @@ function displayScore(score, metrics) {
   if (metrics.exposure < 0.4) sugs.push('→ Lift shadows or increase exposure — the mood is a bit heavy.');
   if (metrics.exposure > 0.85) sugs.push('→ Pull back highlights — some details are getting lost in the light.');
   if (metrics.contrast < 0.3) sugs.push('→ Add contrast — the image feels a bit "flat".');
-  if (metrics.sharpness < 0.3) sugs.push('→ Clarity could be higher — the image appears slightly soft.');
   if (metrics.colorfulness < 0.2) sugs.push('→ The colors are muted. Try Velvia or Portra for a classic pop.');
-  if (S.filter.id === 'none') sugs.push('→ Try a cinematic filter like "Teal & Orange" or "Classic Chrome".');
+  
+  // Compositional Advice
+  if (!metrics.onThird) sugs.push('→ Try the Rule of Thirds — move your subject off-center for a more dynamic composition.');
+  if (metrics.isSymmetric) sugs.push('→ Strong symmetry detected! This works great for architectural shots.');
+  else if (metrics.onThird) sugs.push('→ Great subject placement! The off-center focus creates nice balance.');
+
+  if (S.filter.id === 'none') sugs.push('→ Try a cinematic filter like "Teal & Orange" or "Digi Flash".');
   if (metrics.tonalRange < 0.45) sugs.push('→ Tonal depth is shallow. Try using Curves to deepen the blacks.');
   if (metrics.composite > 8.5) sugs.push('→ Stunning! The composition and grading are professional grade.');
   else if (metrics.composite > 7.0) sugs.push('→ Great shot. A slight tweak to the shadows could make it pop.');
