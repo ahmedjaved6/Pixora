@@ -259,18 +259,21 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 #btn-hist-toggle{position:absolute;bottom:1rem;right:1rem;background:rgba(10,10,12,.8);border:1px solid var(--bd2);border-radius:20px;padding:.35rem .8rem;font-size:.48rem;color:var(--mu2);cursor:pointer;z-index:35;display:none;align-items:center;gap:.4rem;backdrop-filter:blur(5px);}
 #btn-hist-toggle.v{display:flex;}
 
-/* CAMERA MODE */
-#cam-wrap{position:absolute;inset:0;background:#000;z-index:100;display:none;flex-direction:column;align-items:center;justify-content:center;}
+/* CAMERA MODE — PRO UI */
+#cam-wrap{position:absolute;inset:0;background:#000;z-index:1000;display:none;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;}
 #cam-wrap.v{display:flex;}
-#v-preview{width:100%;height:100%;object-fit:cover;}
-.cam-ui{position:absolute;inset:0;display:flex;flex-direction:column;pointer-events:none;}
-.cam-top{padding:1rem;display:flex;justify-content:flex-end;pointer-events:auto;}
-.cam-bot{margin-top:auto;padding:2rem;display:flex;justify-content:center;align-items:center;gap:2rem;pointer-events:auto;background:linear-gradient(transparent,rgba(0,0,0,.6));}
-.shutter{width:70px;height:70px;border-radius:50%;border:4px solid #fff;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .1s;}
-.shutter:active{transform:scale(.9);}
-.shutter-in{width:54px;height:54px;border-radius:50%;background:#fff;}
-.cam-btn{background:rgba(255,255,255,.15);border:none;border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;backdrop-filter:blur(5px);}
-#cam-msg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--mu2);font-family:'DM Mono',monospace;font-size:.6rem;letter-spacing:.1em;text-align:center;}
+#v-preview{width:100%;height:100%;object-fit:cover;background:#000;}
+.cam-ui{position:absolute;inset:0;display:flex;flex-direction:column;pointer-events:none;z-index:1001;}
+.cam-top{padding:1.5rem;display:flex;justify-content:space-between;align-items:center;pointer-events:auto;background:linear-gradient(rgba(0,0,0,.6),transparent);}
+.cam-bot{margin-top:auto;padding:2.5rem 2rem;display:flex;justify-content:space-around;align-items:center;pointer-events:auto;background:linear-gradient(transparent,rgba(0,0,0,.75));}
+.shutter-btn{width:76px;height:76px;border-radius:50%;background:rgba(255,255,255,.2);border:3px solid #fff;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s cubic-bezier(.175,.885,.32,1.275);padding:4px;}
+.shutter-btn:active{transform:scale(.88);background:rgba(255,255,255,.4);}
+.shutter-inner{width:100%;height:100%;border-radius:50%;background:#fff;box-shadow:0 0 15px rgba(255,255,255,.3);}
+.cam-btn-pro{background:rgba(20,20,25,.6);border:1px solid rgba(255,255,255,.15);border-radius:50%;width:48px;height:48px;display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;backdrop-filter:blur(10px);transition:all .2s;}
+.cam-btn-pro:active{background:rgba(232,255,71,.2);border-color:var(--ac);}
+.cam-btn-pro svg{width:22px;height:22px;}
+#cam-msg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--mu2);font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:.2em;text-align:center;z-index:1002;}
+.cam-lbl-pro{font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:.1em;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,.5);}
 .rpt{font-size:.5rem;letter-spacing:.22em;text-transform:uppercase;color:var(--mu2);margin-bottom:.6rem;}
 .rfg{display:grid;grid-template-columns:repeat(5,1fr);gap:.2rem;}
 .rfb{padding:.34rem .1rem;border-radius:4px;border:1px solid var(--bd);background:var(--sf);cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:.06rem;}
@@ -440,22 +443,23 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
     <div class="hist-list" id="hl2"></div>
   </div>
 
-  <!-- CAMERA WRAP -->
+  <!-- CAMERA WRAP — PRO UI -->
   <div id="cam-wrap">
     <video id="v-preview" autoplay playsinline muted></video>
-    <div id="cam-msg">INITIALIZING CAMERA...</div>
+    <div id="cam-msg">INITIALIZING PRO CAMERA...</div>
     <div class="cam-ui">
       <div class="cam-top">
-        <button class="cam-btn" id="btn-cam-close">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l10 10M13 3L3 13"/></svg>
+        <div class="cam-lbl-pro">Pixora Pro Cam</div>
+        <button class="cam-btn-pro" id="btn-cam-close" title="Exit Camera">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
       </div>
       <div class="cam-bot">
-        <button class="cam-btn" id="btn-cam-flip">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 8a6 6 0 11-12 0 6 6 0 0112 0zM8 2v4M2 8h4"/></svg>
+        <button class="cam-btn-pro" id="btn-cam-flip" title="Switch Camera">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 4h-3.17L15 2H9L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z"/><circle cx="12" cy="13" r="4"/></svg>
         </button>
-        <div class="shutter" id="btn-shutter"><div class="shutter-in"></div></div>
-        <div style="width:44px;"></div> <!-- spacer -->
+        <div class="shutter-btn" id="btn-shutter"><div class="shutter-inner"></div></div>
+        <button class="cam-btn-pro" style="visibility:hidden;pointer-events:none;"></button> <!-- spacer -->
       </div>
     </div>
   </div>
@@ -790,32 +794,38 @@ function loadImg(file) {
   r.onload = e => {
     const im = new Image();
     im.onload = async () => {
-      // Mobile optimization: Downscale if too large
-      let finalIm = im;
-      const maxDim = isMob() ? 2048 : 4096;
-      const gpuMax = gl ? gl.getParameter(gl.MAX_TEXTURE_SIZE) : 2048;
-      const limit = Math.min(maxDim, gpuMax);
+      try {
+        // Mobile optimization: Downscale if too large
+        let finalIm = im;
+        const maxDim = isMob() ? 2048 : 4096;
+        const gpuMax = gl ? gl.getParameter(gl.MAX_TEXTURE_SIZE) : 2048;
+        const limit = Math.min(maxDim, gpuMax);
 
-      if (im.width > limit || im.height > limit) {
-        const sc = limit / Math.max(im.width, im.height);
-        const tc = document.createElement('canvas');
-        tc.width = im.width * sc; tc.height = im.height * sc;
-        const tctx = tc.getContext('2d');
-        tctx.drawImage(im, 0, 0, tc.width, tc.height);
-        const nim = new Image();
-        await new Promise(res => { nim.onload = res; nim.src = tc.toDataURL('image/jpeg', 0.85); });
-        finalIm = nim;
+        if (im.width > limit || im.height > limit) {
+          const sc = limit / Math.max(im.width, im.height);
+          const tc = document.createElement('canvas');
+          tc.width = im.width * sc; tc.height = im.height * sc;
+          const tctx = tc.getContext('2d');
+          tctx.drawImage(im, 0, 0, tc.width, tc.height);
+          const nim = new Image();
+          await new Promise(res => { nim.onload = res; nim.src = tc.toDataURL('image/jpeg', 0.85); });
+          finalIm = nim;
+        }
+        
+        S.imgOrig = finalIm;
+        S.imgOrigUrl = finalIm.src;
+        S.has = true; S.filter = FLAT[0];
+        S.adj.intensity = 100;
+        renderGL(true);
+        buildThumbs();
+        showEditorUI();
+        pushHist('Load');
+      } catch (err) {
+        console.error(err);
+        toast('Processing error', 'er');
+      } finally {
+        hideLoad();
       }
-      
-      S.imgOrig = finalIm;
-      S.imgOrigUrl = finalIm.src;
-      S.has = true; S.filter = FLAT[0];
-      S.adj.intensity = 100;
-      renderGL(true);
-      buildThumbs();
-      showEditorUI();
-      pushHist('Load');
-      hideLoad();
     };
     im.onerror = () => { hideLoad(); toast('Load failed', 'er'); };
     im.src = e.target.result;
@@ -1048,7 +1058,7 @@ document.getElementById('hist-head').addEventListener('click', () => document.ge
 
 document.getElementById('us-cam').addEventListener('click', e => { e.stopPropagation(); startCam(); });
 
-// ─── CAMERA LOGIC ───
+// ─── CAMERA LOGIC — PRO ───
 let camStream = null;
 let camFacing = 'user';
 
@@ -1057,21 +1067,39 @@ async function startCam() {
   const video = document.getElementById('v-preview');
   const msg = document.getElementById('cam-msg');
   wrap.classList.add('v');
+  msg.textContent = "INITIALIZING PRO CAMERA...";
   msg.style.display = 'block';
   
   try {
-    if (camStream) stopCam();
+    // Explicitly stop all current tracks before starting new ones
+    if (camStream) {
+      camStream.getTracks().forEach(track => track.stop());
+      camStream = null;
+      video.srcObject = null;
+    }
+    
+    // Tiny delay to ensure hardware is released
+    await new Promise(r => setTimeout(r, 150));
+
     camStream = await navigator.mediaDevices.getUserMedia({ 
-      video: { facingMode: camFacing, width: { ideal: 1920 }, height: { ideal: 1080 } }, 
+      video: { 
+        facingMode: { ideal: camFacing },
+        width: { ideal: 1920 }, 
+        height: { ideal: 1080 } 
+      }, 
       audio: false 
     });
+    
     video.srcObject = camStream;
+    // On some mobile browsers, video doesn't play automatically even with autoplay
+    await video.play(); 
+    
     msg.style.display = 'none';
-    toast('Camera active', 'hi');
+    toast('Pro Cam Active', 'hi');
   } catch (err) {
-    console.error(err);
-    msg.textContent = "CAMERA ACCESS DENIED OR NOT FOUND";
-    setTimeout(() => wrap.classList.remove('v'), 2000);
+    console.error("Camera Error:", err);
+    msg.textContent = "CAMERA UNAVAILABLE OR PERMISSION DENIED";
+    setTimeout(() => { if(!camStream) stopCam(); }, 2500);
   }
 }
 
@@ -1079,17 +1107,22 @@ function stopCam() {
   if (camStream) {
     camStream.getTracks().forEach(t => t.stop());
     camStream = null;
+    const v = document.getElementById('v-preview');
+    if(v) v.srcObject = null;
   }
   document.getElementById('cam-wrap').classList.remove('v');
 }
 
 function capture() {
   const video = document.getElementById('v-preview');
+  if (!video || !video.videoWidth) return;
+  
   const canvas = document.createElement('canvas');
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
   const ctx = canvas.getContext('2d');
-  // Flip if front cam
+  
+  // High quality capture
   if (camFacing === 'user') {
     ctx.translate(canvas.width, 0);
     ctx.scale(-1, 1);
@@ -1099,12 +1132,12 @@ function capture() {
   const img = new Image();
   img.onload = () => {
     S.imgOrig = img;
-    S.imgOrigUrl = canvas.toDataURL('image/jpeg', 0.95);
+    S.imgOrigUrl = canvas.toDataURL('image/jpeg', 0.98);
     stopCam();
     S.has = true; S.filter = FLAT[0]; S.adj.intensity = 100;
     renderGL(true); buildThumbs(); showEditorUI(); pushHist('Capture');
   };
-  img.src = canvas.toDataURL('image/jpeg', 0.95);
+  img.src = canvas.toDataURL('image/jpeg', 0.98);
 }
 
 document.getElementById('btn-cam-close').addEventListener('click', stopCam);
