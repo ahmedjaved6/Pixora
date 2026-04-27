@@ -377,10 +377,15 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
       </div>
       <div class="fscr" id="fscr"></div>
     </div>
+
     <!-- Mobile bottom bar -->
     <div id="bb">
       <button class="mt on" data-tool="crop"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="14" height="14" rx="1.5"/><line x1="3" y1="7.5" x2="17" y2="7.5"/><line x1="3" y1="12.5" x2="17" y2="12.5"/><line x1="7.5" y1="3" x2="7.5" y2="17"/><line x1="12.5" y1="3" x2="12.5" y2="17"/></svg><span class="mt-l">Crop</span></button>
-    
+      <button class="mt" data-tool="adjust"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="6" r="2.5"/><line x1="8.5" y1="6" x2="17" y2="6"/><line x1="3" y1="6" x2="3.5" y2="6"/><circle cx="14" cy="14" r="2.5"/><line x1="16.5" y1="14" x2="17" y2="14"/><line x1="3" y1="14" x2="11.5" y2="14"/></svg><span class="mt-l">Adjust</span></button>
+      <button class="mt" data-tool="filter"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="11" y="3" width="6" height="6" rx="1"/><rect x="3" y="11" width="6" height="6" rx="1"/><rect x="11" y="11" width="6" height="6" rx="1"/></svg><span class="mt-l">Filters</span></button>
+      <button class="mt" data-tool="score"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="6"/><circle cx="10" cy="10" r="2.5"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="10" y1="16" x2="10" y2="18"/><line x1="2" y1="10" x2="4" y2="10"/><line x1="16" y1="10" x2="18" y2="10"/></svg><span class="mt-l">AI Score</span></button>
+    </div>
+
     <div id="score-overlay">
       <div class="sc-title">AI Aesthetic Score</div>
       <div class="sc-platforms" id="sc-platforms">
@@ -419,23 +424,6 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
     <div id="hp"><div class="htt">History</div><div id="hl2"></div></div>
   </div>
 
-  <!-- MOBILE FILTER BAR -->
-  <div id="fb">
-    <div style="padding:.5rem 1rem;border-bottom:1px solid var(--bd2);background:var(--sf);">
-      <div class="ah"><span class="an" style="font-size:.44rem;">Filter Strength</span><span class="av" id="av-intensity-fm">100%</span></div>
-      <input type="range" id="ar-intensity-fm" min="0" max="100" value="100" style="width:100%;margin-top:.3rem;"/>
-    </div>
-    <div class="fscr" id="fscr"></div>
-  </div>
-
-  <!-- MOBILE BOTTOM BAR -->
-  <div id="bb">
-    <button class="mt on" data-tool="crop"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="14" height="14" rx="1.5"/><line x1="3" y1="7.5" x2="17" y2="7.5"/><line x1="3" y1="12.5" x2="17" y2="12.5"/><line x1="7.5" y1="3" x2="7.5" y2="17"/><line x1="12.5" y1="3" x2="12.5" y2="17"/></svg><span class="mt-l">Crop</span></button>
-    <button class="mt" data-tool="adjust"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="6" r="2.5"/><line x1="8.5" y1="6" x2="17" y2="6"/><line x1="3" y1="6" x2="3.5" y2="6"/><circle cx="14" cy="14" r="2.5"/><line x1="16.5" y1="14" x2="17" y2="14"/><line x1="3" y1="14" x2="11.5" y2="14"/></svg><span class="mt-l">Adjust</span></button>
-    <button class="mt" data-tool="filter"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="11" y="3" width="6" height="6" rx="1"/><rect x="3" y="11" width="6" height="6" rx="1"/><rect x="11" y="11" width="6" height="6" rx="1"/></svg><span class="mt-l">Filters</span></button>
-    <button class="mt" data-tool="score"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="6"/><circle cx="10" cy="10" r="2.5"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="10" y1="16" x2="10" y2="18"/><line x1="2" y1="10" x2="4" y2="10"/><line x1="16" y1="10" x2="18" y2="10"/></svg><span class="mt-l">AI Score</span></button>
-  </div>
-    
   <!-- History Drawer -->
   <button id="btn-hist-toggle">History <svg viewBox="0 0 16 16" fill="currentColor" style="width:10px;"><path d="M8 12l-4-4h8l-4 4z"/></svg></button>
   <div id="hist-drawer">
@@ -841,7 +829,8 @@ function showEditorUI() {
   ['btn-undo','btn-reset','btn-export'].forEach(id => document.getElementById(id).style.display = 'flex');
   if (isMob()) {
     document.getElementById('bb').classList.add('v');
-    document.getElementById('fmb').classList.add('v');
+  } else {
+    document.getElementById('us-cam').style.display = 'none';
   }
   document.getElementById('btn-hist-toggle').classList.add('v');
   setTool('crop');
@@ -857,14 +846,13 @@ document.getElementById('btn-back').addEventListener('click', () => {
   S.hist = []; S.histL = [];
   S.layer.destroyChildren(); S.layer.batchDraw();
   document.getElementById('us').classList.remove('g');
+  document.getElementById('us-cam').style.display = 'block';
   document.getElementById('btn-back').classList.remove('v');
   document.getElementById('btn-peek').classList.remove('v');
   document.getElementById('ba-badge').classList.remove('v');
   ['btn-undo','btn-reset','btn-export'].forEach(id => document.getElementById(id).style.display = 'none');
   document.getElementById('bb').classList.remove('v');
-  document.getElementById('fmb').classList.remove('v');
   document.getElementById('fb').classList.remove('v');
-  document.getElementById('ao').classList.remove('v');
   ['ss-crop','ss-adj','ss-filter'].forEach(id => document.getElementById(id).classList.remove('on'));
   document.getElementById('ss-crop').classList.add('on');
   document.getElementById('hl2').innerHTML = '';
@@ -879,19 +867,15 @@ function setTool(t) {
   document.getElementById('hist-drawer').classList.remove('v');
   document.querySelectorAll('.tr,.mt').forEach(b => b.classList.toggle('on', b.dataset.tool === t));
   ['ss-crop','ss-adj','ss-filter'].forEach(id => document.getElementById(id).classList.remove('on'));
-  document.getElementById('ao').classList.remove('v');
   document.getElementById('fb').classList.remove('v');
-  document.getElementById('fmb').classList.remove('v');
   document.getElementById('ba-badge').classList.remove('v');
 
   if (t === 'crop') {
     document.getElementById('ss-crop').classList.add('on');
-    if (isMob()) document.getElementById('fmb').classList.add('v');
     if (S.has) { enterCrop(); }
   }
   if (t === 'adjust') {
     document.getElementById('ss-adj').classList.add('on');
-    if (isMob()) document.getElementById('ao').classList.add('v');
     if (S.has) { document.getElementById('ba-badge').classList.add('v'); }
   }
   if (t === 'filter') {
@@ -1649,14 +1633,15 @@ const ca = document.getElementById('cv');
 ca.addEventListener('dragover', e => e.preventDefault());
 ca.addEventListener('drop', e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) loadImg(f); });
 
-// ─── ADJ SWIPE ───
-const ao = document.getElementById('ao'); let sy = 0;
-ao.addEventListener('touchstart', e => { sy = e.touches[0].clientY; }, { passive: true });
-ao.addEventListener('touchend', e => { if (e.changedTouches[0].clientY - sy > 60) ao.classList.remove('v'); }, { passive: true });
-
 // ─── UTILS ───
-let tt;
-function toast(msg, type='') { const el=document.getElementById('toast'); el.textContent=msg; el.className='s '+(type||''); clearTimeout(tt); tt=setTimeout(()=>el.className='',2600); }
+let tt = null;
+function toast(msg, type='') { 
+  const el=document.getElementById('toast'); 
+  if(!el) return; 
+  el.textContent=msg; el.className='s '+(type||''); 
+  if(tt) clearTimeout(tt); 
+  tt = setTimeout(()=>el.className='', 2600); 
+}
 function showLoad(m='PROCESSING') { document.getElementById('lm').textContent=m; document.getElementById('ld').classList.add('v'); }
 function hideLoad() { document.getElementById('ld').classList.remove('v'); }
 
