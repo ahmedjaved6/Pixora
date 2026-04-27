@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="theme-color" content="#0c0c0c"/>
+<meta name="description" content="AI-powered photo editor for Instagram. On-device. Free forever."/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="PIXORA"/>
+<link rel="manifest" href="/manifest.json"/>
+<title>PIXORA — AI Photo Editor</title>
+<script src="https://cdn.jsdelivr.net/npm/konva@9.3.6/konva.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;1,300&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#0c0c0c;
+  --bg2:#111;
+  --surface:#161616;
+  --surface2:#1c1c1c;
+  --border:#242424;
+  --border2:#2e2e2e;
+  --text:#efefef;
+  --muted:#4a4a4a;
+  --muted2:#666;
+  --accent:#e8ff47;
+  --accent-dim:rgba(232,255,71,0.12);
+  --accent2:#ff5c35;
+  --safe-bottom:env(safe-area-inset-bottom, 0px);
+  --toolbar-h:64px;
+  --bottombar-h:72px;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;}
+
+/* ── SPLASH SCREEN ── */
+#splash{
+  position:fixed;inset:0;background:var(--bg);z-index:1000;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;
+  transition:opacity 0.5s ease, visibility 0.5s ease;
+}
+#splash.hidden{opacity:0;visibility:hidden;}
+.splash-logo{
+  font-family:'Bebas Neue',sans-serif;font-size:clamp(4rem,20vw,7rem);
+  letter-spacing:0.05em;line-height:1;color:var(--text);
+  position:relative;
+}
+.splash-logo span{color:var(--accent);}
+.splash-tagline{
+  font-size:0.65rem;letter-spacing:0.2em;color:var(--muted2);text-transform:uppercase;
+}
+.splash-loader{
+  width:120px;height:2px;background:var(--border);border-radius:1px;overflow:hidden;margin-top:1rem;
+}
+.splash-loader-fill{
+  height:100%;background:var(--accent);border-radius:1px;
+  animation:loadfill 1.8s cubic-bezier(0.4,0,0.2,1) forwards;
+}
+@keyframes loadfill{from{width:0%;}to{width:100%;}}
+
+/* ── APP SHELL ── */
+#app{height:100%;display:flex;flex-direction:column;overflow:hidden;}
+
+/* ── TOP BAR ── */
+#topbar{
+  height:var(--toolbar-h);flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 1.25rem;
+  border-bottom:1px solid var(--border);
+  background:var(--bg);
+  position:relative;z-index:10;
+}
+.logo-small{
+  font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:0.08em;
+  color:var(--text);line-height:1;
+}
+.logo-small span{color:var(--accent);}
+.topbar-actions{display:flex;align-items:center;gap:0.5rem;}
+.icon-btn{
+  width:38px;height:38px;border-radius:8px;
+  border:1px solid var(--border);background:var(--surface);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:border-color 0.15s,background 0.15s;
+  color:var(--muted2);font-size:1rem;
+}
+.icon-btn:hover,.icon-btn:active{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
+.icon-btn.primary{background:var(--accent);border-color:var(--accent);color:#000;font-weight:700;}
+.icon-btn.primary:hover{background:#d4eb30;}
+
+/* ── MAIN CANVAS AREA ── */
+#canvas-area{
+  flex:1;overflow:hidden;position:relative;
+  background:var(--bg2);
+  display:flex;align-items:center;justify-content:center;
+}
+#konva-container{width:100%;height:100%;}
+
+/* ── UPLOAD STATE ── */
+#upload-state{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:1.5rem;
+  padding:2rem;
+}
+#upload-state.hidden{display:none;}
+.upload-ring{
+  width:120px;height:120px;border-radius:50%;
+  border:2px dashed var(--border2);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.5rem;
+  cursor:pointer;transition:border-color 0.2s,background 0.2s;
+  position:relative;
+}
+.upload-ring:hover{border-color:var(--accent);background:var(--accent-dim);}
+.upload-ring input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.upload-icon-large{font-size:2.2rem;}
+.upload-ring-label{font-size:0.55rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted2);}
+.upload-headline{
+  font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:0.05em;
+  color:var(--text);text-align:center;line-height:1.1;
+}
+.upload-sub{font-size:0.62rem;color:var(--muted);text-align:center;letter-spacing:0.1em;line-height:1.8;}
+.upload-formats{
+  display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:center;
+}
+.format-chip-small{
+  padding:0.2rem 0.6rem;border-radius:3px;
+  border:1px solid var(--border);font-size:0.6rem;
+  letter-spacing:0.1em;color:var(--muted2);
+}
+
+/* ── FORMAT SELECTOR BAR ── */
+#format-bar{
+  flex-shrink:0;background:var(--bg);border-top:1px solid var(--border);
+  padding:0.75rem 1rem;display:none;
+  overflow-x:auto;scrollbar-width:none;
+}
+#format-bar::-webkit-scrollbar{display:none;}
+#format-bar.visible{display:flex;gap:0.5rem;align-items:center;}
+.format-label{font-size:0.58rem;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase;flex-shrink:0;margin-right:0.5rem;}
+.fmt-btn{
+  flex-shrink:0;padding:0.45rem 0.9rem;border-radius:6px;
+  border:1px solid var(--border);background:var(--surface);
+  cursor:pointer;transition:all 0.15s;
+  display:flex;flex-direction:column;align-items:center;gap:0.15rem;
+  min-width:70px;
+}
+.fmt-btn:hover,.fmt-btn.active{border-color:var(--accent);background:var(--accent-dim);}
+.fmt-btn.active .fmt-ratio{color:var(--accent);}
+.fmt-ratio{font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:0.05em;color:var(--text);line-height:1;}
+.fmt-name{font-size:0.55rem;letter-spacing:0.1em;color:var(--muted2);text-transform:uppercase;}
+
+/* ── BOTTOM TOOLBAR ── */
+#bottombar{
+  height:calc(var(--bottombar-h) + var(--safe-bottom));
+  padding-bottom:var(--safe-bottom);
+  flex-shrink:0;background:var(--bg);border-top:1px solid var(--border);
+  display:none;align-items:center;justify-content:space-around;padding-left:0.5rem;padding-right:0.5rem;
+}
+#bottombar.visible{display:flex;}
+.tool-btn{
+  flex:1;height:48px;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:0.25rem;cursor:pointer;border-radius:8px;
+  transition:background 0.15s;color:var(--muted2);border:none;background:transparent;
+  max-width:72px;
+}
+.tool-btn:hover,.tool-btn.active{color:var(--accent);background:var(--accent-dim);}
+.tool-icon{font-size:1.1rem;line-height:1;}
+.tool-label{font-size:0.5rem;letter-spacing:0.1em;text-transform:uppercase;}
+
+/* ── CROP OVERLAY ── */
+#crop-overlay{
+  position:absolute;inset:0;pointer-events:none;
+  display:none;
+}
+#crop-overlay.visible{display:block;pointer-events:auto;}
+.crop-handle{
+  position:absolute;width:20px;height:20px;
+  border:3px solid var(--accent);background:var(--bg);
+  cursor:pointer;z-index:5;
+}
+.crop-handle.tl{top:0;left:0;border-right:none;border-bottom:none;}
+.crop-handle.tr{top:0;right:0;border-left:none;border-bottom:none;}
+.crop-handle.bl{bottom:0;left:0;border-right:none;border-top:none;}
+.crop-handle.br{bottom:0;right:0;border-left:none;border-top:none;}
+.crop-grid{
+  position:absolute;inset:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(232,255,71,0.15) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(232,255,71,0.15) 1px, transparent 1px);
+  background-size:33.33% 33.33%;
+}
+.crop-border{
+  position:absolute;inset:0;
+  border:1.5px solid var(--accent);pointer-events:none;
+}
+
+/* ── ADJUSTMENTS PANEL ── */
+#adj-panel{
+  position:absolute;bottom:0;left:0;right:0;
+  background:var(--surface);border-top:1px solid var(--border);
+  padding:1.25rem 1.25rem calc(1.25rem + var(--safe-bottom));
+  transform:translateY(100%);transition:transform 0.3s cubic-bezier(0.16,1,0.3,1);
+  z-index:20;max-height:55vh;overflow-y:auto;
+}
+#adj-panel.open{transform:translateY(0);}
+.panel-drag{width:40px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 1.25rem;}
+.adj-title{font-size:0.6rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted2);margin-bottom:1rem;}
+.adj-row{display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1.25rem;}
+.adj-row-header{display:flex;justify-content:space-between;align-items:center;}
+.adj-name{font-size:0.65rem;letter-spacing:0.1em;color:var(--text);text-transform:uppercase;}
+.adj-val{font-size:0.65rem;color:var(--accent);font-variant-numeric:tabular-nums;}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;width:100%;height:3px;
+  background:var(--border2);border-radius:2px;outline:none;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:18px;height:18px;border-radius:50%;
+  background:var(--accent);cursor:pointer;border:2px solid var(--bg);
+  box-shadow:0 0 0 1px var(--accent);transition:transform 0.1s;
+}
+input[type=range]::-webkit-slider-thumb:active{transform:scale(1.2);}
+input[type=range]::-moz-range-thumb{
+  width:18px;height:18px;border-radius:50%;background:var(--accent);
+  cursor:pointer;border:2px solid var(--bg);
+}
+
+/* ── EXPORT PANEL ── */
+#export-panel{
+  position:absolute;inset:0;background:rgba(12,12,12,0.96);
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  gap:1.5rem;padding:2rem;z-index:30;
+  backdrop-filter:blur(8px);
+}
+#export-panel.open{display:flex;}
+.export-title{
+  font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:0.05em;text-align:center;
+}
+.export-preview-wrap{
+  width:100%;max-width:320px;border-radius:10px;overflow:hidden;
+  border:1px solid var(--border2);position:relative;
+}
+.export-preview-wrap img{width:100%;display:block;}
+.export-badge{
+  position:absolute;top:0.6rem;right:0.6rem;
+  background:rgba(12,12,12,0.8);border:1px solid var(--border2);
+  border-radius:4px;padding:0.2rem 0.5rem;
+  font-size:0.55rem;letter-spacing:0.1em;color:var(--muted2);
+}
+.export-options{width:100%;max-width:320px;display:flex;flex-direction:column;gap:0.75rem;}
+.export-btn{
+  width:100%;padding:0.9rem;border-radius:8px;
+  border:1px solid var(--border);background:var(--surface);
+  color:var(--text);font-family:'DM Mono',monospace;font-size:0.75rem;
+  letter-spacing:0.05em;cursor:pointer;transition:all 0.15s;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.export-btn:hover{border-color:var(--accent);background:var(--accent-dim);}
+.export-btn.primary-export{
+  background:var(--accent);border-color:var(--accent);color:#000;font-weight:700;
+}
+.export-btn.primary-export:hover{background:#d4eb30;}
+.export-spec{font-size:0.58rem;color:var(--muted2);}
+.export-btn.primary-export .export-spec{color:rgba(0,0,0,0.5);}
+.export-close{
+  font-size:0.65rem;letter-spacing:0.1em;color:var(--muted);
+  cursor:pointer;padding:0.5rem 1rem;border-radius:6px;border:none;background:transparent;
+  font-family:'DM Mono',monospace;
+}
+.export-close:hover{color:var(--text);}
+
+/* ── TOAST ── */
+#toast{
+  position:fixed;bottom:calc(var(--bottombar-h) + 1rem + var(--safe-bottom));
+  left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:8px;padding:0.6rem 1.1rem;
+  font-size:0.68rem;letter-spacing:0.05em;color:var(--text);
+  white-space:nowrap;opacity:0;transition:opacity 0.2s,transform 0.2s;
+  z-index:100;pointer-events:none;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+#toast.success{border-color:rgba(79,255,176,0.4);color:#4fffb0;}
+#toast.error{border-color:rgba(255,68,68,0.4);color:#ff4444;}
+
+/* ── LOADING OVERLAY ── */
+#loading-overlay{
+  position:absolute;inset:0;background:rgba(12,12,12,0.85);
+  display:none;align-items:center;justify-content:center;flex-direction:column;gap:1rem;
+  z-index:50;backdrop-filter:blur(4px);
+}
+#loading-overlay.show{display:flex;}
+.loading-spinner{
+  width:32px;height:32px;border:2.5px solid var(--border2);
+  border-top-color:var(--accent);border-radius:50%;
+  animation:spin 0.7s linear infinite;
+}
+.loading-msg{font-size:0.65rem;letter-spacing:0.15em;color:var(--muted2);}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ── FADE IN ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+.fade-in{animation:fadeUp 0.4s ease both;}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-logo">PIX<span>ORA</span></div>
+  <div class="splash-tagline">AI Photo Editor · On Device · Free</div>
+  <div class="splash-loader"><div class="splash-loader-fill"></div></div>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <div class="logo-small">PIX<span>ORA</span></div>
+    <div class="topbar-actions">
+      <div class="icon-btn" id="btn-undo" title="Undo" style="display:none;">↩</div>
+      <div class="icon-btn" id="btn-reset" title="Reset" style="display:none;">✕</div>
+      <div class="icon-btn primary" id="btn-export" title="Export" style="display:none;">↑</div>
+    </div>
+  </div>
+
+  <!-- CANVAS AREA -->
+  <div id="canvas-area">
+    <!-- Upload empty state -->
+    <div id="upload-state">
+      <div class="upload-ring">
+        <input type="file" accept="image/*" id="file-input"/>
+        <span class="upload-icon-large">＋</span>
+        <span class="upload-ring-label">Upload</span>
+      </div>
+      <div class="upload-headline">Your Photo.<br/>AI-Perfected.</div>
+      <div class="upload-sub">
+        Drop any photo · Fujifilm LUT filters · AI scoring<br/>
+        Instagram-ready export · 100% on-device
+      </div>
+      <div class="upload-formats">
+        <span class="format-chip-small">JPG</span>
+        <span class="format-chip-small">PNG</span>
+        <span class="format-chip-small">WEBP</span>
+        <span class="format-chip-small">HEIC</span>
+      </div>
+    </div>
+
+    <!-- Konva canvas container -->
+    <div id="konva-container"></div>
+
+    <!-- Crop overlay (CSS-based for simplicity, Konva handles interaction) -->
+    <div id="crop-overlay">
+      <div class="crop-grid"></div>
+      <div class="crop-border"></div>
+    </div>
+
+    <!-- Loading overlay -->
+    <div id="loading-overlay">
+      <div class="loading-spinner"></div>
+      <div class="loading-msg" id="loading-msg">PROCESSING</div>
+    </div>
+  </div>
+
+  <!-- FORMAT BAR -->
+  <div id="format-bar">
+    <span class="format-label">Format</span>
+    <button class="fmt-btn active" data-ratio="1:1" data-w="1080" data-h="1080">
+      <span class="fmt-ratio">1:1</span>
+      <span class="fmt-name">Square</span>
+    </button>
+    <button class="fmt-btn" data-ratio="4:5" data-w="1080" data-h="1350">
+      <span class="fmt-ratio">4:5</span>
+      <span class="fmt-name">Portrait</span>
+    </button>
+    <button class="fmt-btn" data-ratio="9:16" data-w="1080" data-h="1920">
+      <span class="fmt-ratio">9:16</span>
+      <span class="fmt-name">Story</span>
+    </button>
+    <button class="fmt-btn" data-ratio="16:9" data-w="1920" data-h="1080">
+      <span class="fmt-ratio">16:9</span>
+      <span class="fmt-name">Landscape</span>
+    </button>
+    <button class="fmt-btn" data-ratio="free" data-w="0" data-h="0">
+      <span class="fmt-ratio">FREE</span>
+      <span class="fmt-name">Original</span>
+    </button>
+  </div>
+
+  <!-- BOTTOM TOOLBAR -->
+  <div id="bottombar">
+    <button class="tool-btn active" id="tool-crop" data-tool="crop">
+      <span class="tool-icon">⊡</span>
+      <span class="tool-label">Crop</span>
+    </button>
+    <button class="tool-btn" id="tool-adjust" data-tool="adjust">
+      <span class="tool-icon">◑</span>
+      <span class="tool-label">Adjust</span>
+    </button>
+    <button class="tool-btn" id="tool-filter" data-tool="filter">
+      <span class="tool-icon">◈</span>
+      <span class="tool-label">Filters</span>
+    </button>
+    <button class="tool-btn" id="tool-score" data-tool="score">
+      <span class="tool-icon">◎</span>
+      <span class="tool-label">AI Score</span>
+    </button>
+  </div>
+
+</div><!-- /app -->
+
+<!-- ADJUSTMENTS PANEL -->
+<div id="adj-panel">
+  <div class="panel-drag"></div>
+  <div class="adj-title">Adjustments</div>
+
+  <div class="adj-row">
+    <div class="adj-row-header">
+      <span class="adj-name">Brightness</span>
+      <span class="adj-val" id="val-brightness">0</span>
+    </div>
+    <input type="range" id="adj-brightness" min="-100" max="100" value="0"/>
+  </div>
+
+  <div class="adj-row">
+    <div class="adj-row-header">
+      <span class="adj-name">Contrast</span>
+      <span class="adj-val" id="val-contrast">0</span>
+    </div>
+    <input type="range" id="adj-contrast" min="-100" max="100" value="0"/>
+  </div>
+
+  <div class="adj-row">
+    <div class="adj-row-header">
+      <span class="adj-name">Saturation</span>
+      <span class="adj-val" id="val-saturation">0</span>
+    </div>
+    <input type="range" id="adj-saturation" min="-100" max="100" value="0"/>
+  </div>
+
+  <div class="adj-row">
+    <div class="adj-row-header">
+      <span class="adj-name">Warmth</span>
+      <span class="adj-val" id="val-warmth">0</span>
+    </div>
+    <input type="range" id="adj-warmth" min="-100" max="100" value="0"/>
+  </div>
+
+  <div class="adj-row">
+    <div class="adj-row-header">
+      <span class="adj-name">Shadows</span>
+      <span class="adj-val" id="val-shadows">0</span>
+    </div>
+    <input type="range" id="adj-shadows" min="-100" max="100" value="0"/>
+  </div>
+
+  <div class="adj-row">
+    <div class="adj-row-header">
+      <span class="adj-name">Highlights</span>
+      <span class="adj-val" id="val-highlights">0</span>
+    </div>
+    <input type="range" id="adj-highlights" min="-100" max="100" value="0"/>
+  </div>
+</div>
+
+<!-- EXPORT PANEL -->
+<div id="export-panel">
+  <div class="export-title fade-in">Export Photo</div>
+  <div class="export-preview-wrap fade-in">
+    <img id="export-preview-img" src="" alt="Export preview"/>
+    <div class="export-badge" id="export-badge">1080 × 1080</div>
+  </div>
+  <div class="export-options fade-in">
+    <button class="export-btn primary-export" id="btn-download-ig">
+      <span>Instagram Export</span>
+      <span class="export-spec" id="ig-spec">1080 × 1080 · JPEG 92%</span>
+    </button>
+    <button class="export-btn" id="btn-download-orig">
+      <span>Original Quality</span>
+      <span class="export-spec">Max resolution · JPEG 95%</span>
+    </button>
+    <button class="export-btn" id="btn-download-web">
+      <span>Web Optimized</span>
+      <span class="export-spec">720px · JPEG 80% · Compressed</span>
+    </button>
+  </div>
+  <button class="export-close" id="btn-export-close">✕ Cancel</button>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// PIXORA — Phase 1 Core
+// Canvas: Konva.js | Export: browser-image-compression
+// ═══════════════════════════════════════════════════════
+
+const state = {
+  hasImage: false,
+  activeTool: 'crop',
+  activeFormat: { ratio:'1:1', w:1080, h:1080 },
+  adjustments: { brightness:0, contrast:0, saturation:0, warmth:0, shadows:0, highlights:0 },
+  imageOriginal: null, // original HTMLImageElement
+  imageDataUrl: null,  // original dataURL
+  konvaStage: null,
+  konvaLayer: null,
+  konvaImage: null,
+  konvaGroup: null,
+  cropRect: null,
+  isDraggingCrop: false,
+  history: [],
+};
+
+// ─── SPLASH ───
+setTimeout(() => {
+  document.getElementById('splash').classList.add('hidden');
+}, 2000);
+
+// ─── KONVA INIT ───
+function initKonva() {
+  const container = document.getElementById('konva-container');
+  const W = container.offsetWidth;
+  const H = container.offsetHeight;
+
+  state.konvaStage = new Konva.Stage({ container:'konva-container', width:W, height:H });
+  state.konvaLayer = new Konva.Layer();
+  state.konvaStage.add(state.konvaLayer);
+
+  // Resize observer
+  const ro = new ResizeObserver(() => {
+    const W2 = container.offsetWidth;
+    const H2 = container.offsetHeight;
+    state.konvaStage.width(W2);
+    state.konvaStage.height(H2);
+    if (state.hasImage) fitImageToStage();
+  });
+  ro.observe(container);
+}
+
+// ─── FIT IMAGE TO STAGE ───
+function fitImageToStage() {
+  if (!state.konvaImage || !state.imageOriginal) return;
+  const sw = state.konvaStage.width();
+  const sh = state.konvaStage.height();
+  const iw = state.imageOriginal.naturalWidth;
+  const ih = state.imageOriginal.naturalHeight;
+
+  const scale = Math.min((sw * 0.92) / iw, (sh * 0.92) / ih);
+  const nw = iw * scale;
+  const nh = ih * scale;
+
+  state.konvaImage.width(nw);
+  state.konvaImage.height(nh);
+  state.konvaImage.x((sw - nw) / 2);
+  state.konvaImage.y((sh - nh) / 2);
+  state.konvaLayer.batchDraw();
+
+  updateCropOverlay();
+}
+
+// ─── LOAD IMAGE ───
+function loadImage(file) {
+  if (!file || !file.type.startsWith('image/')) { showToast('Please upload an image file', 'error'); return; }
+  showLoading('LOADING IMAGE');
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      state.imageOriginal = img;
+      state.imageDataUrl = e.target.result;
+      state.hasImage = true;
+
+      // Clear previous
+      state.konvaLayer.destroyChildren();
+
+      // Create Konva image
+      state.konvaImage = new Konva.Image({
+        image: img,
+        draggable: true,
+      });
+
+      // Add filters
+      state.konvaImage.cache();
+      state.konvaImage.filters([Konva.Filters.Brighten, Konva.Filters.Contrast, Konva.Filters.HSL]);
+
+      state.konvaLayer.add(state.konvaImage);
+      state.konvaLayer.batchDraw();
+
+      fitImageToStage();
+      showEditorUI();
+      hideLoading();
+      pushHistory();
+    };
+    img.onerror = () => { hideLoading(); showToast('Failed to load image', 'error'); };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ─── SHOW EDITOR UI ───
+function showEditorUI() {
+  document.getElementById('upload-state').classList.add('hidden');
+  document.getElementById('format-bar').classList.add('visible');
+  document.getElementById('bottombar').classList.add('visible');
+  document.getElementById('btn-undo').style.display = 'flex';
+  document.getElementById('btn-reset').style.display = 'flex';
+  document.getElementById('btn-export').style.display = 'flex';
+  updateCropOverlay();
+}
+
+// ─── CROP OVERLAY (visual) ───
+function updateCropOverlay() {
+  if (!state.konvaImage || !state.hasImage) return;
+  const overlay = document.getElementById('crop-overlay');
+
+  if (state.activeTool === 'crop') {
+    overlay.classList.add('visible');
+    // Position overlay exactly over the Konva image
+    const stageRect = document.getElementById('konva-container').getBoundingClientRect();
+    const imgX = state.konvaImage.x();
+    const imgY = state.konvaImage.y();
+    const imgW = state.konvaImage.width();
+    const imgH = state.konvaImage.height();
+
+    overlay.style.left = imgX + 'px';
+    overlay.style.top = imgY + 'px';
+    overlay.style.width = imgW + 'px';
+    overlay.style.height = imgH + 'px';
+    overlay.style.position = 'absolute';
+  } else {
+    overlay.classList.remove('visible');
+  }
+}
+
+// ─── APPLY ADJUSTMENTS TO KONVA ───
+function applyAdjustments() {
+  if (!state.konvaImage) return;
+  const a = state.adjustments;
+
+  // Konva Brighten: -1 to 1 range
+  state.konvaImage.brightness(a.brightness / 100);
+  // Konva Contrast: -100 to 100
+  state.konvaImage.contrast(a.contrast);
+  // HSL for saturation + warmth (hue shift)
+  state.konvaImage.saturation(a.saturation / 100);
+  state.konvaImage.hue(a.warmth * 0.3); // warmth maps to subtle hue shift
+
+  state.konvaLayer.batchDraw();
+}
+
+// ─── ADJUSTMENT SLIDERS ───
+const sliders = ['brightness','contrast','saturation','warmth','shadows','highlights'];
+sliders.forEach(name => {
+  const el = document.getElementById('adj-' + name);
+  const val = document.getElementById('val-' + name);
+  if (!el) return;
+  el.addEventListener('input', () => {
+    const v = parseInt(el.value);
+    val.textContent = v > 0 ? '+' + v : v;
+    state.adjustments[name] = v;
+    applyAdjustments();
+  });
+});
+
+// ─── TOOL SWITCHER ───
+document.querySelectorAll('.tool-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (!state.hasImage) return;
+    const tool = btn.dataset.tool;
+    state.activeTool = tool;
+
+    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    const adjPanel = document.getElementById('adj-panel');
+    if (tool === 'adjust') {
+      adjPanel.classList.add('open');
+    } else {
+      adjPanel.classList.remove('open');
+    }
+
+    if (tool === 'crop') {
+      updateCropOverlay();
+    } else {
+      document.getElementById('crop-overlay').classList.remove('visible');
+    }
+
+    if (tool === 'filter') {
+      showToast('Fujifilm LUT filters — coming in Phase 2', 'success');
+    }
+
+    if (tool === 'score') {
+      showToast('AI Aesthetic Scoring — coming in Phase 3', 'success');
+    }
+  });
+});
+
+// ─── FORMAT SELECTOR ───
+document.querySelectorAll('.fmt-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.fmt-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.activeFormat = {
+      ratio: btn.dataset.ratio,
+      w: parseInt(btn.dataset.w),
+      h: parseInt(btn.dataset.h),
+    };
+    showToast('Format: ' + btn.dataset.ratio, '');
+  });
+});
+
+// ─── EXPORT FLOW ───
+document.getElementById('btn-export').addEventListener('click', openExportPanel);
+document.getElementById('btn-export-close').addEventListener('click', () => {
+  document.getElementById('export-panel').classList.remove('open');
+});
+
+async function openExportPanel() {
+  if (!state.hasImage) return;
+  showLoading('PREPARING EXPORT');
+
+  try {
+    // Render current canvas state to dataURL for preview
+    const dataUrl = await renderToDataURL(state.activeFormat);
+    const previewImg = document.getElementById('export-preview-img');
+    previewImg.src = dataUrl;
+
+    const { w, h, ratio } = state.activeFormat;
+    document.getElementById('export-badge').textContent = ratio === 'free'
+      ? `${state.imageOriginal.naturalWidth} × ${state.imageOriginal.naturalHeight}`
+      : `${w} × ${h}`;
+    document.getElementById('ig-spec').textContent =
+      ratio === 'free'
+        ? `${state.imageOriginal.naturalWidth} × ${state.imageOriginal.naturalHeight} · JPEG 92%`
+        : `${w} × ${h} · JPEG 92%`;
+
+    hideLoading();
+    document.getElementById('export-panel').classList.add('open');
+  } catch(e) {
+    hideLoading();
+    showToast('Export preview failed', 'error');
+  }
+}
+
+// ─── RENDER TO DATAURL ───
+async function renderToDataURL(format) {
+  return new Promise((resolve) => {
+    const offCanvas = document.createElement('canvas');
+    const img = state.imageOriginal;
+    const iw = img.naturalWidth;
+    const ih = img.naturalHeight;
+    const a = state.adjustments;
+
+    let tw, th;
+    if (format.ratio === 'free' || format.w === 0) {
+      tw = iw; th = ih;
+    } else {
+      tw = format.w; th = format.h;
+    }
+
+    offCanvas.width = tw;
+    offCanvas.height = th;
+    const ctx = offCanvas.getContext('2d');
+
+    // Background
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, tw, th);
+
+    // Fit image (cover for Instagram, contain for free)
+    let sx = 0, sy = 0, sw = iw, sh = ih;
+    let dx = 0, dy = 0, dw = tw, dh = th;
+
+    if (format.ratio !== 'free') {
+      const targetAR = tw / th;
+      const imgAR = iw / ih;
+      if (imgAR > targetAR) {
+        sw = ih * targetAR;
+        sx = (iw - sw) / 2;
+      } else {
+        sh = iw / targetAR;
+        sy = (ih - sh) / 2;
+      }
+    } else {
+      // contain
+      const scale = Math.min(tw / iw, th / ih);
+      dw = iw * scale;
+      dh = ih * scale;
+      dx = (tw - dw) / 2;
+      dy = (th - dh) / 2;
+    }
+
+    // Apply CSS filters for adjustments
+    const brightness = 1 + (a.brightness / 100);
+    const contrast = 1 + (a.contrast / 100);
+    const saturation = 1 + (a.saturation / 100);
+    const hueRot = a.warmth * 0.3;
+
+    ctx.filter = `brightness(${brightness}) contrast(${contrast}) saturate(${saturation}) hue-rotate(${hueRot}deg)`;
+
+    if (format.ratio !== 'free') {
+      ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+    } else {
+      ctx.drawImage(img, dx, dy, dw, dh);
+    }
+
+    ctx.filter = 'none';
+    resolve(offCanvas.toDataURL('image/jpeg', 0.92));
+  });
+}
+
+// ─── DOWNLOAD HELPERS ───
+async function downloadAs(quality, maxDim, label) {
+  showLoading('EXPORTING');
+  try {
+    const format = quality === 'web'
+      ? { ratio:'free', w: maxDim, h: maxDim }
+      : state.activeFormat;
+
+    const dataUrl = await renderToDataURL(format);
+
+    // Convert dataURL to blob then compress
+    const blob = await (await fetch(dataUrl)).blob();
+    const q = quality === 'orig' ? 0.95 : quality === 'web' ? 0.80 : 0.92;
+
+    const compressed = await imageCompression(blob, {
+      maxSizeMB: quality === 'web' ? 0.5 : 5,
+      maxWidthOrHeight: quality === 'web' ? maxDim : (state.activeFormat.w || 4096),
+      useWebWorker: true,
+      fileType: 'image/jpeg',
+      initialQuality: q,
+    });
+
+    const url = URL.createObjectURL(compressed);
+    const a = document.createElement('a');
+    a.href = url;
+    const ts = new Date().toISOString().slice(0,10).replace(/-/g,'');
+    a.download = `pixora_${ts}_${label}.jpg`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    hideLoading();
+    document.getElementById('export-panel').classList.remove('open');
+    showToast('✓ Downloaded — ' + label, 'success');
+  } catch(e) {
+    hideLoading();
+    showToast('Export failed: ' + e.message, 'error');
+  }
+}
+
+document.getElementById('btn-download-ig').addEventListener('click', () => downloadAs('ig', 1080, 'instagram'));
+document.getElementById('btn-download-orig').addEventListener('click', () => downloadAs('orig', 4096, 'original'));
+document.getElementById('btn-download-web').addEventListener('click', () => downloadAs('web', 720, 'web'));
+
+// ─── RESET ───
+document.getElementById('btn-reset').addEventListener('click', () => {
+  if (!confirm('Reset all edits?')) return;
+  sliders.forEach(name => {
+    const el = document.getElementById('adj-' + name);
+    const val = document.getElementById('val-' + name);
+    if (el) { el.value = 0; val.textContent = '0'; }
+    state.adjustments[name] = 0;
+  });
+  applyAdjustments();
+  showToast('Edits reset', '');
+});
+
+// ─── UNDO (simple state history) ───
+function pushHistory() {
+  state.history.push({ ...state.adjustments });
+  if (state.history.length > 20) state.history.shift();
+}
+
+document.getElementById('btn-undo').addEventListener('click', () => {
+  if (state.history.length < 2) { showToast('Nothing to undo', ''); return; }
+  state.history.pop();
+  const prev = state.history[state.history.length - 1];
+  Object.assign(state.adjustments, prev);
+  sliders.forEach(name => {
+    const el = document.getElementById('adj-' + name);
+    const val = document.getElementById('val-' + name);
+    if (el) {
+      el.value = state.adjustments[name];
+      const v = state.adjustments[name];
+      val.textContent = v > 0 ? '+' + v : v;
+    }
+  });
+  applyAdjustments();
+  showToast('Undo', '');
+});
+
+// ─── FILE INPUT ───
+document.getElementById('file-input').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (file) loadImage(file);
+});
+
+// ─── DRAG + DROP on canvas area ───
+const canvasArea = document.getElementById('canvas-area');
+canvasArea.addEventListener('dragover', e => { e.preventDefault(); canvasArea.style.borderColor = 'var(--accent)'; });
+canvasArea.addEventListener('dragleave', () => canvasArea.style.borderColor = '');
+canvasArea.addEventListener('drop', e => {
+  e.preventDefault();
+  canvasArea.style.borderColor = '';
+  const file = e.dataTransfer.files[0];
+  if (file) loadImage(file);
+});
+
+// ─── TOAST ───
+let toastTimeout;
+function showToast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show ' + type;
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => el.className = '', 2500);
+}
+
+// ─── LOADING ───
+function showLoading(msg = 'PROCESSING') {
+  document.getElementById('loading-msg').textContent = msg;
+  document.getElementById('loading-overlay').classList.add('show');
+}
+function hideLoading() {
+  document.getElementById('loading-overlay').classList.remove('show');
+}
+
+// ─── PANEL DRAG CLOSE (swipe down) ───
+let panelStartY = 0;
+const adjPanel = document.getElementById('adj-panel');
+adjPanel.addEventListener('touchstart', e => { panelStartY = e.touches[0].clientY; }, { passive:true });
+adjPanel.addEventListener('touchend', e => {
+  const dy = e.changedTouches[0].clientY - panelStartY;
+  if (dy > 60) adjPanel.classList.remove('open');
+}, { passive:true });
+
+// ─── INIT ───
+window.addEventListener('DOMContentLoaded', () => {
+  initKonva();
+});
+
+// ─── PWA SERVICE WORKER REGISTRATION ───
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').then(() => {
+      console.log('[PIXORA] Service worker registered');
+    }).catch(e => console.warn('[PIXORA] SW registration skipped:', e));
+  });
+}
+</script>
+</body>
+</html>
