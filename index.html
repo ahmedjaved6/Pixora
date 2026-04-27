@@ -305,7 +305,7 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
     </div>
     <div class="ss on" id="ss-crop"><div class="sst">Format</div><div id="sfmt"><div class="sg"><button class="sb2 on" data-ratio="1:1" data-w="1080" data-h="1080"><span class="sr2">1:1</span><span class="sn2">Sq</span></button><button class="sb2" data-ratio="4:5" data-w="1080" data-h="1350"><span class="sr2">4:5</span><span class="sn2">Port</span></button><button class="sb2" data-ratio="9:16" data-w="1080" data-h="1920"><span class="sr2">9:16</span><span class="sn2">Story</span></button><button class="sb2" data-ratio="16:9" data-w="1920" data-h="1080"><span class="sr2">16:9</span><span class="sn2">Land</span></button><button class="sb2" data-ratio="free" data-w="0" data-h="0"><span class="sr2">—</span><span class="sn2">Free</span></button></div></div></div>
     <div class="ss" id="ss-adj"><div class="sst">Adjustments</div><div id="sa"></div></div>
-    <div class="ss" id="ss-filter"><div class="sst">Filters · 32</div><div id="sfl"></div></div>
+    <div class="ss" id="ss-filter"><div class="sst">Filters · 47</div><div id="sfl"></div></div>
   </div>
 
   <!-- CANVAS -->
@@ -313,7 +313,7 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
     <label id="us" for="fi">
       <div class="uz"><div class="up">+</div><div class="ul">Upload</div></div>
       <div class="uh">Drop any photo.<br/>Make it cinematic.</div>
-      <div class="ud">32 film & cinematic filters · Per-channel curves · HSL color grading<br/>AI aesthetic scoring · Before/After compare · Instagram export</div>
+      <div class="ud">47 smart & cinematic filters · Per-channel curves · HSL color grading<br/>AI aesthetic scoring · Before/After compare · Instagram export</div>
       <div class="uc"><span class="chip">JPG</span><span class="chip">PNG</span><span class="chip">WEBP</span><span class="chip">HEIC</span></div>
     </label>
     <div id="kc"></div>
@@ -424,6 +424,31 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 const PACKS = [
   { pack:'Original', filters:[
     { id:'none', name:'Original', p:null },
+  ]},
+  { pack:'Portraits', filters:[
+    { id:'p_studio', name:'Studio Glam', p:{ r:[.05,.08,.5,.54,.95,.94], g:[.05,.07,.5,.52,.95,.95], b:[.05,.06,.5,.5,.95,.96], sat:0.95, vi:0.05, gr:0.01, diffusion:0.5, wt:3, wb:1 }},
+    { id:'p_golden', name:'Golden Hour', p:{ r:[.05,.07,.5,.55,.95,.97], g:[.05,.06,.5,.52,.95,.95], b:[.05,.04,.5,.48,.95,.92], sat:1.1, vi:0.1, gr:0.015, wt:15, wb:5, tsh:[2,1,0], thl:[3,2,-1] }},
+    { id:'p_matte',  name:'Matte Skin',  p:{ r:[.0,.1,.5,.52,.95,.92], g:[.0,.09,.5,.51,.95,.92], b:[.0,.08,.5,.5,.95,.92], sat:0.85, vi:0.08, gr:0.02, wt:0, wb:0, tsh:[1,1,1], thl:[-1,-1,-1] }},
+  ]},
+  { pack:'Landscape', filters:[
+    { id:'l_vivid',  name:'Vivid Earth', p:{ r:[.0,.0,.5,.52,.95,1.], g:[.05,.04,.5,.55,.95,1.05], b:[.05,.04,.5,.52,.95,1.05], sat:1.35, vi:0.15, gr:0.0, wt:-2, wb:-2, hsl1:[1,1,1.2,1.3], hsl2:[1.3,1.3,1,1] }},
+    { id:'l_moody',  name:'Moody Forest',p:{ r:[.05,.08,.5,.5,.9,.9], g:[.05,.08,.5,.5,.9,.92], b:[.05,.1,.5,.5,.9,.95], sat:0.7, vi:0.25, gr:0.02, wt:-5, wb:2, tsh:[-2,-1,2], hsl1:[1,0.8,0.6,0.8], hsl2:[1.2,1,1,1] }},
+    { id:'l_sunset', name:'Sunset Glow', p:{ r:[.05,.05,.5,.58,.95,1.], g:[.05,.05,.5,.52,.95,.95], b:[.05,.05,.5,.45,.95,.9], sat:1.2, vi:0.1, gr:0.01, wt:20, wb:10, tsh:[2,-1,-2], thl:[4,1,-1] }},
+  ]},
+  { pack:'Architecture', filters:[
+    { id:'a_concrete',name:'Concrete',    p:{ r:[.0,.0,.5,.55,.95,.95], g:[.0,.0,.5,.55,.95,.95], b:[.0,.0,.5,.55,.95,.95], sat:0.4, vi:0.2, gr:0.03, wt:-2, wb:-2, tsh:[0,0,1], thl:[0,0,1] }},
+    { id:'a_steel',   name:'Steel & Glass',p:{ r:[.0,.0,.5,.52,.95,.98], g:[.0,.0,.5,.54,.95,1.], b:[.0,.0,.5,.56,.95,1.02], sat:0.75, vi:0.1, gr:0.01, wt:-8, wb:-4, tsh:[-1,0,2], thl:[-1,1,2] }},
+    { id:'a_minimal', name:'Minimalist',  p:{ r:[.05,.08,.5,.52,.95,.95], g:[.05,.08,.5,.52,.95,.95], b:[.05,.08,.5,.52,.95,.95], sat:0.5, vi:0.0, gr:0.0, wt:0, wb:0, tsh:[1,1,1], thl:[1,1,1] }},
+  ]},
+  { pack:'Food', filters:[
+    { id:'f_delicious',name:'Delicious',  p:{ r:[.0,.0,.5,.54,.95,1.], g:[.05,.05,.5,.52,.95,.95], b:[.05,.05,.5,.5,.95,.9], sat:1.3, vi:0.1, gr:0.0, wt:8, wb:2, hsl1:[1.2,1.3,1.2,1], hsl2:[0.8,0.8,1,1] }},
+    { id:'f_cafe',     name:'Cafe Warmth', p:{ r:[.05,.06,.5,.52,.95,.95], g:[.05,.05,.5,.5,.95,.92], b:[.05,.04,.5,.48,.95,.88], sat:1.1, vi:0.15, gr:0.01, wt:12, wb:6, tsh:[2,1,-1], thl:[2,1,-1] }},
+    { id:'f_fresh',    name:'Fresh Produce',p:{ r:[.0,.0,.5,.55,.95,1.], g:[.0,.0,.5,.55,.95,1.], b:[.0,.0,.5,.55,.95,1.], sat:1.4, vi:0.05, gr:0.0, wt:0, wb:0, hsl1:[1.3,1.3,1.3,1.3] }},
+  ]},
+  { pack:'Street', filters:[
+    { id:'s_gritty',   name:'Gritty Mono', p:{ r:[.0,.0,.4,.4,.8,.8,.95,.9], g:[.0,.0,.4,.4,.8,.8,.95,.9], b:[.0,.0,.4,.4,.8,.8,.95,.9], sat:0.0, vi:0.35, gr:0.06, wt:0, wb:0 }},
+    { id:'s_neon',     name:'Neon Night',  p:{ r:[.05,.0,.5,.55,.95,1.05], g:[.05,.0,.5,.45,.95,.9], b:[.05,.0,.5,.58,.95,1.05], sat:1.4, vi:0.25, gr:0.02, wt:-5, wb:-5, bloom:0.6, halation:1.2, tsh:[1,-2,2], thl:[2,-1,2] }},
+    { id:'s_classic',  name:'Classic Street',p:{ r:[.05,.08,.5,.52,.95,.95], g:[.05,.07,.5,.5,.95,.92], b:[.05,.06,.5,.48,.95,.9], sat:0.8, vi:0.2, gr:0.04, wt:5, wb:2, tsh:[1,1,0], thl:[1,1,-1] }},
   ]},
   { pack:'FS Series', filters:[
     { id:'provia',     name:'FS-Standard',    p:{ r:[.05,.06,.5,.52,.95,.96], g:[.05,.055,.5,.515,.95,.955], b:[.05,.045,.5,.5,.95,.945], sat:1.12, vi:0.10, gr:0.012, wt:2, wb:-1, tsh:[0,0,1], thl:[-1,0,0] }},
