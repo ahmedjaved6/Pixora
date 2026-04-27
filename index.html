@@ -581,39 +581,6 @@ const GL = (() => {
     gl.uniform1i(gl.getUniformLocation(pg,'img'), 0);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
-    if (p) {
-      const R = parseCurve(p.r), G = parseCurve(p.g || p.r), B = parseCurve(p.b || p.r);
-      uv4('rc', R.xs); uv4('rcv', R.ys);
-      uv4('gc2', G.xs); uv4('gcv', G.ys);
-      uv4('bc', B.xs); uv4('bcv', B.ys);
-      u1('sat', p.sat !== undefined ? p.sat : 1.0);
-      u1('vi', p.vi || 0); u1('gr', p.gr || 0);
-      u1('wt', p.wt || 0); u1('wb', p.wb || 0);
-      u3('tsh', p.tsh || [0,0,0]);
-      u3('thl', p.thl || [0,0,0]);
-      uv4('hsl_sat1', p.hsl1 || [1,1,1,1]);
-      uv4('hsl_sat2', p.hsl2 || [1,1,1,1]);
-      u1('halation', p.halation || 0);
-      u1('bloom', p.bloom || 0);
-      u1('diffusion', p.diffusion || 0);
-    } else {
-      const id = [0, 0.33, 0.66, 1.0];
-      uv4('rc', id); uv4('rcv', id);
-      uv4('gc2', id); uv4('gcv', id);
-      uv4('bc', id); uv4('bcv', id);
-      u1('sat', 1); u1('vi', 0); u1('gr', 0);
-      u1('wt', 0); u1('wb', 0);
-      u3('tsh', [0,0,0]); u3('thl', [0,0,0]);
-  u1('halation', 0); u1('bloom', 0); u1('diffusion', 0);
-    }
-    u1('ab', adj.brightness||0); u1('ac2', adj.contrast||0);
-    u1('as2', adj.saturation||0); u1('aw', adj.warmth||0);
-    u1('ash', adj.shadows||0); u1('ahl', adj.highlights||0);
-    u1('splitPos', splitPos);
-    u1('seed', Math.random());
-    gl.uniform1i(gl.getUniformLocation(pg,'img'), 0);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-  }
 
   function expGL(im, f, adj, w, h) {
     glCanvas.width = w; glCanvas.height = h;
