@@ -353,6 +353,10 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
       <div class="sc-suggestions" id="sc-sug" style="display:none">
         <div class="sc-sug-title">Suggestions</div>
         <div id="sc-sug-list"></div>
+        <button class="eo pri" id="btn-magic-enhance" style="width:100%;margin-top:.8rem;padding:.5rem;">
+          <svg viewBox="0 0 16 16" fill="currentColor" style="width:14px;margin-right:8px;"><path d="M8 0L6 6 0 8 6 10 8 16 10 10 16 8 10 6 8 0z"/></svg>
+          Magic Enhance
+        </button>
       </div>
       <button class="sc-close" id="sc-close">Close</button>
     </div>
@@ -640,8 +644,7 @@ const GL = (() => {
       u1('sat', 1); u1('vi', 0); u1('gr', 0);
       u1('wt', 0); u1('wb', 0);
       u3('tsh', [0,0,0]); u3('thl', [0,0,0]);
-      uv4('hsl_sat1', [1,1,1,1]); uv4('hsl_sat2', [1,1,1,1]);
-      u1('halation', 0); u1('bloom', 0); u1('diffusion', 0);
+  u1('halation', 0); u1('bloom', 0); u1('diffusion', 0);
     }
     u1('ab', adj.brightness||0); u1('ac2', adj.contrast||0);
     u1('as2', adj.saturation||0); u1('aw', adj.warmth||0);
@@ -652,7 +655,14 @@ const GL = (() => {
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
 
-  return { si, dr };
+  function expGL(im, f, adj, w, h) {
+    glCanvas.width = w; glCanvas.height = h;
+    gl.viewport(0, 0, w, h);
+    si(im); dr(f, adj, w, h, 0);
+    return glCanvas;
+  }
+
+  return { si, dr, expGL };
 })();
 
 // ─── SHARED THUMB CANVAS ───
@@ -752,9 +762,23 @@ function loadImg(file) {
   const r = new FileReader();
   r.onload = e => {
     const im = new Image();
-    im.onload = () => {
-      S.imgOrig = im;
-      S.imgOrigUrl = e.target.result;
+    im.onload = async () => {
+      // Mobile optimization: Downscale if too large
+      let finalIm = im;
+      const maxDim = isMob() ? 2048 : 4096;
+      if (im.width > maxDim || im.height > maxDim) {
+        const sc = maxDim / Math.max(im.width, im.height);
+        const tc = document.createElement('canvas');
+        tc.width = im.width * sc; tc.height = im.height * sc;
+        const tctx = tc.getContext('2d');
+        tctx.drawImage(im, 0, 0, tc.width, tc.height);
+        const nim = new Image();
+        await new Promise(res => { nim.onload = res; nim.src = tc.toDataURL('image/jpeg', 0.9); });
+        finalIm = nim;
+      }
+      
+      S.imgOrig = finalIm;
+      S.imgOrigUrl = finalIm.src;
       S.has = true; S.filter = FLAT[0];
       renderGL(true);
       buildThumbs();
@@ -943,7 +967,19 @@ function buildAdjRows() {
   [['sa','s'],['ma','m']].forEach(([cid, sfx]) => {
     const el = document.getElementById(cid); if (!el) return;
     ADEFS.forEach(({id, l}) => {
-      el.innerHTML += `<div class="ar"><div class="ah"><span class="an">${l}</span><span class="av" id="av-${id}-${sfx}">0</span></div><input type="range" id="ar-${id}-${sfx}" min="-100" max="100" value="0"/></div>`;
+      el.innerHTML += `
+        <div class="ar">
+          <div class="ah">
+            <span class="an">${l}</span>
+            <div style="display:flex;align-items:center;gap:.6rem;">
+              <span class="av" id="av-${id}-${sfx}">0</span>
+              <button class="ib" style="width:20px;height:20px;border:none;background:transparent;padding:0;" onclick="S.adj['${id}']=0;syncSlider('${id}',0);renderGL();" title="Reset">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 3L3 13M3 3l10 10"/></svg>
+              </button>
+            </div>
+          </div>
+          <input type="range" id="ar-${id}-${sfx}" min="-100" max="100" value="0"/>
+        </div>`;
     });
     ADEFS.forEach(({id}) => {
       const sl = document.getElementById(`ar-${id}-${sfx}`); if (!sl) return;
@@ -967,9 +1003,22 @@ function bindFmtBtns() {
     btn.addEventListener('click', () => {
       S.fmt = { ratio: btn.dataset.ratio, w: parseInt(btn.dataset.w), h: parseInt(btn.dataset.h) };
       document.querySelectorAll('[data-ratio]').forEach(b => b.classList.toggle('on', b.dataset.ratio === S.fmt.ratio));
+      if (S.cropping) updateCropBoxRatio();
       toast('Format: ' + S.fmt.ratio, '');
     });
   });
+}
+
+function updateCropBoxRatio() {
+  if (!S.cropR || S.fmt.ratio === 'free') return;
+  const parts = S.fmt.ratio.split(':');
+  if (parts.length !== 2) return;
+  const r = parseInt(parts[0]) / parseInt(parts[1]);
+  const curW = S.cropR.width() * S.cropR.scaleX();
+  S.cropR.height(curW / r);
+  S.cropR.scaleY(1);
+  S.cropTx.forceUpdate();
+  S.layer.batchDraw();
 }
 
 // ─── FILTER UI ───
@@ -1031,34 +1080,51 @@ function resetFA() { document.querySelectorAll('.ft,.sft').forEach(el => el.clas
 // ─── CROP (instant box on tool select) ───
 function enterCrop() {
   if (!S.has || !S.kImg) return;
-  if (S.cropping) return; // already in crop mode
+  // Clean old if any to avoid duplicates
+  if (S.cropR) S.cropR.destroy();
+  if (S.cropTx) S.cropTx.destroy();
+  
   S.cropping = true;
   const img = S.kImg;
   const ix = img.x(), iy = img.y(), iw = img.width(), ih = img.height();
-  const cw = iw * .86, ch = ih * .86;
+  let cw = iw * .8, ch = ih * .8;
+
+  // Apply ratio if not free
+  if (S.fmt.ratio !== 'free') {
+    const parts = S.fmt.ratio.split(':');
+    if (parts.length === 2) {
+      const r = parseInt(parts[0]) / parseInt(parts[1]);
+      if (cw / ch > r) cw = ch * r; else ch = cw / r;
+    }
+  }
+
   S.cropR = new Konva.Rect({
     x: ix + (iw-cw)/2, y: iy + (ih-ch)/2, width: cw, height: ch,
-    fill: 'rgba(232,255,71,.04)', stroke: '#e8ff47', strokeWidth: 1.5, draggable: true
+    fill: 'rgba(232,255,71,.04)', stroke: '#e8ff47', strokeWidth: 1.5, draggable: true,
+    name: 'cropRect'
   });
+  
   S.cropR.dragBoundFunc(function(pos) {
+    const scaleX = this.scaleX(), scaleY = this.scaleY();
+    const curW = this.width() * scaleX, curH = this.height() * scaleY;
     return {
-      x: Math.max(ix, Math.min(ix + iw - this.width() * this.scaleX(), pos.x)),
-      y: Math.max(iy, Math.min(iy + ih - this.height() * this.scaleY(), pos.y))
+      x: Math.max(ix, Math.min(ix + iw - curW, pos.x)),
+      y: Math.max(iy, Math.min(iy + ih - curH, pos.y))
     };
   });
+
   S.cropTx = new Konva.Transformer({
-    nodes: [S.cropR], keepRatio: false, rotateEnabled: false,
-    enabledAnchors: ['top-left','top-right','bottom-left','bottom-right','top-center','bottom-center','middle-left','middle-right'],
+    nodes: [S.cropR], keepRatio: S.fmt.ratio !== 'free', rotateEnabled: false,
+    enabledAnchors: S.fmt.ratio === 'free' ? ['top-left','top-right','bottom-left','bottom-right','top-center','bottom-center','middle-left','middle-right'] : ['top-left','top-right','bottom-left','bottom-right'],
     boundBoxFunc: (old, nw) => {
       if (nw.width < 40 || nw.height < 40) return old;
-      nw.x = Math.max(ix, nw.x); nw.y = Math.max(iy, nw.y);
-      if (nw.x + nw.width > ix + iw) nw.width = ix + iw - nw.x;
-      if (nw.y + nw.height > iy + ih) nw.height = iy + ih - nw.y;
+      if (nw.x < ix || nw.y < iy || nw.x + nw.width > ix + iw || nw.y + nw.height > iy + ih) return old;
       return nw;
     },
     anchorStroke: '#e8ff47', anchorFill: '#0c0c0e', anchorSize: 9, anchorCornerRadius: 2,
     borderStroke: '#e8ff47', borderDash: [4, 3],
   });
+
   S.layer.add(S.cropR); S.layer.add(S.cropTx); S.layer.batchDraw();
   document.getElementById('crb').classList.add('v');
 }
@@ -1248,10 +1314,24 @@ function displayScore(score, metrics) {
 
   if (sugs.length > 0) {
     const sugEl = document.getElementById('sc-sug');
-    // Pick 3 best suggestions
     const displaySugs = sugs.sort(() => .5 - Math.random()).slice(0, 3);
     document.getElementById('sc-sug-list').innerHTML = displaySugs.map(s => `<div class="sc-sug-item">${s}</div>`).join('');
     sugEl.style.display = 'block';
+    
+    // Bind Magic Enhance
+    document.getElementById('btn-magic-enhance').onclick = () => {
+      // Simple Auto-Enhance logic
+      if (metrics.exposure < 0.45) S.adj.brightness += 15;
+      if (metrics.contrast < 0.35) S.adj.contrast += 20;
+      if (metrics.colorfulness < 0.25) S.adj.saturation += 15;
+      if (!metrics.onThird) toast('Composition improved!', 'hi');
+      
+      ADEFS.forEach(({id}) => syncSlider(id, S.adj[id]));
+      renderGL(true);
+      document.getElementById('score-overlay').classList.remove('v');
+      toast('✨ Magic Enhanced!', 'ok');
+      pushHist('Magic Enhance');
+    };
   }
 }
 
