@@ -36,9 +36,9 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);font-
 
 /* APP */
 #app{height:100%;display:grid;overflow:hidden;
-  grid-template-rows:var(--th) 1fr var(--fh) var(--bh);
+  grid-template-rows:var(--th) 1fr var(--bh);
   grid-template-columns:1fr;
-  grid-template-areas:"top""cv""fb""bb";}
+  grid-template-areas:"top""cv""bb";}
 
 /* TOPBAR */
 #top{grid-area:top;display:flex;align-items:center;justify-content:space-between;padding:0 .8rem;border-bottom:1px solid var(--bd);background:var(--bg);z-index:100;}
@@ -83,41 +83,69 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);font-
 #btn-peek svg{width:13px;height:13px;}
 #btn-peek:active,.peek-active{background:var(--acd);border-color:rgba(232,255,71,.4);color:var(--ac);}
 
-/* MOBILE FILTER BAR */
-#fb{grid-area:fb;background:var(--bg);border-top:1px solid var(--bd);display:none;overflow:hidden;}
-#fb.v{display:flex;align-items:center;}
-.fscr{display:flex;overflow-x:auto;scrollbar-width:none;padding:.5rem .6rem;align-items:center;width:100%;gap:0;}
-.fscr::-webkit-scrollbar{display:none;}
-.ft{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:.35rem;cursor:pointer;padding:0 .42rem;}
-.fcw{width:58px;height:58px;border-radius:5px;overflow:hidden;background:var(--bd);outline:2px solid transparent;outline-offset:2px;transition:outline-color .15s;}
-.fcw canvas{width:100%;height:100%;display:block;}
-.ft.on .fcw{outline-color:var(--ac);}
-.fn{font-size:.44rem;letter-spacing:.1em;text-transform:uppercase;color:var(--mu2);white-space:nowrap;}
-.ft.on .fn{color:var(--ac);}
+/* MOBILE TOOL BARS (Absolute over canvas) */
+#fb, #ma, #fmb {
+  position: absolute;
+  bottom: calc(var(--bh) + var(--sb));
+  left: 0; right: 0;
+  background: rgba(15, 15, 18, 0.95);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid var(--bd2);
+  z-index: 15;
+  display: none;
+}
+#fb.v { display: flex; flex-direction: column; }
+#ma.v { display: flex; flex-direction: column; padding: 1rem .85rem; max-height: 45vh; overflow-y: auto; gap: .2rem; }
+#fmb.v { display: flex; gap: .3rem; align-items: center; padding: .65rem; overflow-x: auto; scrollbar-width: none; }
+#fmb::-webkit-scrollbar { display: none; }
 
-/* MOBILE FORMAT BAR */
-#fmb{display:none;position:absolute;bottom:0;left:0;right:0;background:var(--bg);border-top:1px solid var(--bd);padding:.45rem .65rem;overflow-x:auto;scrollbar-width:none;z-index:15;}
-#fmb::-webkit-scrollbar{display:none;}
-#fmb.v{display:flex;gap:.3rem;align-items:center;}
-.flbl{font-size:.5rem;letter-spacing:.16em;color:var(--mu);text-transform:uppercase;flex-shrink:0;margin-right:.3rem;}
-.fmb{flex-shrink:0;padding:.3rem .6rem;border-radius:4px;border:1px solid var(--bd);background:var(--sf);cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:.06rem;min-width:48px;}
-.fmb:hover,.fmb.on{border-color:rgba(232,255,71,.4);background:var(--acd);}
-.fmb.on .fr{color:var(--ac);}
-.fr{font-family:'Bebas Neue',sans-serif;font-size:.8rem;color:var(--tx);}
-.fnm{font-size:.42rem;letter-spacing:.08em;color:var(--mu2);text-transform:uppercase;}
+.fscr { display: flex; overflow-x: auto; scrollbar-width: none; padding: .6rem; align-items: center; width: 100%; gap: 0; }
+.fscr::-webkit-scrollbar { display: none; }
+.ft { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: .35rem; cursor: pointer; padding: 0 .42rem; }
+.fcw { width: 58px; height: 58px; border-radius: 5px; overflow: hidden; background: var(--bd); outline: 2px solid transparent; outline-offset: 2px; transition: outline-color .15s; }
+.fcw canvas { width: 100%; height: 100%; display: block; }
+.ft.on .fcw { outline-color: var(--ac); }
+.fn { font-size: .44rem; letter-spacing: .1em; text-transform: uppercase; color: var(--mu2); white-space: nowrap; }
+.ft.on .fn { color: var(--ac); }
+
+.flbl { font-size: .5rem; letter-spacing: .16em; color: var(--mu); text-transform: uppercase; flex-shrink: 0; margin-right: .3rem; }
+.fmb { flex-shrink: 0; padding: .3rem .6rem; border-radius: 4px; border: 1px solid var(--bd); background: var(--sf); cursor: pointer; transition: all .15s; display: flex; flex-direction: column; align-items: center; gap: .06rem; min-width: 48px; }
+.fmb:hover, .fmb.on { border-color: rgba(232, 255, 71, .4); background: var(--acd); }
+.fmb.on .fr { color: var(--ac); }
+.fr { font-family: 'Bebas Neue', sans-serif; font-size: .8rem; color: var(--tx); }
+.fnm { font-size: .42rem; letter-spacing: .08em; color: var(--mu2); text-transform: uppercase; }
 
 /* MOBILE BOTTOM BAR */
-#bb{grid-area:bb;background:var(--bg);border-top:1px solid var(--bd);display:none;align-items:center;justify-content:space-around;padding:0 .25rem;padding-bottom:var(--sb);}
-#bb.v{display:flex;}
-.mt{flex:1;max-width:68px;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.18rem;cursor:pointer;border-radius:6px;border:none;background:transparent;color:var(--mu2);transition:all .15s;}
-.mt:hover,.mt.on{color:var(--ac);background:var(--acd);}
-.mt svg{width:17px;height:17px;}
-.mt-l{font-size:.42rem;letter-spacing:.12em;text-transform:uppercase;}
-
-/* ADJ OVERLAY (mobile) */
-#ao{position:absolute;bottom:0;left:0;right:0;background:var(--sf);border-top:1px solid var(--bd);padding:.85rem .85rem calc(.85rem + var(--sb));transform:translateY(100%);transition:transform .3s cubic-bezier(.16,1,.3,1);z-index:25;max-height:56vh;overflow-y:auto;}
-#ao.v{transform:translateY(0);}
-.dp{width:28px;height:3px;background:var(--bd2);border-radius:2px;margin:0 auto .85rem;}
+#bb {
+  background: var(--bg);
+  border-top: 1px solid var(--bd);
+  display: none;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 .25rem;
+  padding-bottom: var(--sb);
+  z-index: 20;
+}
+#bb.v { display: flex; }
+.mt {
+  flex: 1;
+  max-width: 68px;
+  height: var(--bh);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .18rem;
+  cursor: pointer;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--mu2);
+  transition: all .15s;
+}
+.mt:hover, .mt.on { color: var(--ac); background: var(--acd); }
+.mt svg { width: 17px; height: 17px; }
+.mt-l { font-size: .42rem; letter-spacing: .12em; text-transform: uppercase; }
 
 /* SHARED ADJ */
 .at{font-size:.5rem;letter-spacing:.22em;text-transform:uppercase;color:var(--mu2);margin-bottom:.65rem;}
@@ -131,7 +159,8 @@ input[type=range]::-webkit-slider-thumb:active{transform:scale(1.3);}
 input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--ac);cursor:pointer;border:2px solid var(--bg);}
 
 /* CROP */
-#crb{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:none;gap:.4rem;z-index:20;}
+#crb{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);display:none;gap:.4rem;z-index:20;}
+@media(max-width:767px){ #crb{bottom:calc(var(--bh) + var(--sb) + 65px);} }
 #crb.v{display:flex;}
 .cb{padding:.42rem .95rem;border-radius:4px;font-family:'DM Mono',monospace;font-size:.56rem;letter-spacing:.1em;cursor:pointer;transition:all .15s;}
 .cb.ok{background:var(--ac);border:1px solid var(--ac);color:#000;font-weight:700;}
@@ -198,7 +227,7 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 /* TABLET+ */
 @media(min-width:768px){
   #app{grid-template-rows:var(--th) 1fr;grid-template-columns:var(--sw) 1fr;grid-template-areas:"top top""sd cv";}
-  #fb,#bb{display:none!important;}
+  #fb,#bb,#ma,#fmb{display:none!important;}
   #sd{display:flex!important;}
   #cv{border-left:1px solid var(--bd);}
   #toast{bottom:1.5rem;}
@@ -274,6 +303,15 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 .cam-btn-pro svg{width:22px;height:22px;}
 #cam-msg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--mu2);font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:.2em;text-align:center;z-index:1002;}
 .cam-lbl-pro{font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:.1em;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,.5);}
+.cam-fscr{position:absolute;bottom:7.5rem;left:0;right:0;display:flex;gap:.8rem;padding:0 1.5rem;overflow-x:auto;pointer-events:auto;z-index:1002;scroll-behavior:smooth;}
+.cam-fscr::-webkit-scrollbar{display:none;}
+.cft{flex:0 0 54px;display:flex;flex-direction:column;align-items:center;gap:.3rem;cursor:pointer;opacity:.6;transition:all .2s;}
+.cft.on{opacity:1;transform:scale(1.1);}
+.cfw{width:54px;height:54px;border-radius:10px;border:2px solid rgba(255,255,255,.2);overflow:hidden;background:#111;}
+.cft.on .cfw{border-color:var(--ac);}
+.cfn{font-size:.4rem;color:#fff;text-transform:uppercase;letter-spacing:.05em;text-align:center;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#cam-canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1000;}
+#v-preview{display:none;}
 .rpt{font-size:.5rem;letter-spacing:.22em;text-transform:uppercase;color:var(--mu2);margin-bottom:.6rem;}
 .rfg{display:grid;grid-template-columns:repeat(5,1fr);gap:.2rem;}
 .rfb{padding:.34rem .1rem;border-radius:4px;border:1px solid var(--bd);background:var(--sf);cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:.06rem;}
@@ -351,7 +389,7 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
       <div class="uh">Drop any photo.</div>
       <div class="ud">47 smart & cinematic filters · Per-channel curves · HSL color grading<br/>AI aesthetic scoring · Before/After compare · Instagram export</div>
     </label>
-    <div id="us-cam" style="position:absolute;top:72%;left:50%;transform:translateX(-50%);z-index:10;color:var(--ac);cursor:pointer;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;border:1px solid rgba(232,255,71,.3);padding:.4rem 1rem;border-radius:20px;background:rgba(232,255,71,.05);">Start Live Camera</div>
+    <!-- <div id="us-cam" style="position:absolute;top:72%;left:50%;transform:translateX(-50%);z-index:10;color:var(--ac);cursor:pointer;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;border:1px solid rgba(232,255,71,.3);padding:.4rem 1rem;border-radius:20px;background:rgba(232,255,71,.05);">Start Live Camera</div> -->
     <div id="kc"></div>
     <!-- Before/After badge -->
     <div id="ba-badge"><div class="ba-lbl active" id="ba-edited">Edited</div><div class="ba-lbl" id="ba-orig">Original</div></div>
@@ -377,6 +415,19 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
       </div>
       <div class="fscr" id="fscr"></div>
     </div>
+    
+    <!-- Mobile format bar -->
+    <div id="fmb">
+      <div class="flbl">Format</div>
+      <div class="fmb on" data-ratio="1:1" data-w="1080" data-h="1080"><span class="fr">1:1</span><span class="fnm">Sq</span></div>
+      <div class="fmb" data-ratio="4:5" data-w="1080" data-h="1350"><span class="fr">4:5</span><span class="fnm">Port</span></div>
+      <div class="fmb" data-ratio="9:16" data-w="1080" data-h="1920"><span class="fr">9:16</span><span class="fnm">Story</span></div>
+      <div class="fmb" data-ratio="16:9" data-w="1920" data-h="1080"><span class="fr">16:9</span><span class="fnm">Land</span></div>
+      <div class="fmb" data-ratio="free" data-w="0" data-h="0"><span class="fr">—</span><span class="fnm">Free</span></div>
+    </div>
+
+    <!-- Mobile adjustments -->
+    <div id="ma"></div>
 
     <!-- Mobile bottom bar -->
     <div id="bb">
@@ -434,6 +485,7 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
   <!-- CAMERA WRAP — PRO UI -->
   <div id="cam-wrap">
     <video id="v-preview" autoplay playsinline muted></video>
+    <canvas id="cam-canvas"></canvas>
     <div id="cam-msg">INITIALIZING PRO CAMERA...</div>
     <div class="cam-ui">
       <div class="cam-top">
@@ -442,6 +494,7 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
       </div>
+      <div class="cam-fscr" id="cam-fscr"></div>
       <div class="cam-bot">
         <button class="cam-btn-pro" id="btn-cam-flip" title="Switch Camera">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 4h-3.17L15 2H9L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z"/><circle cx="12" cy="13" r="4"/></svg>
@@ -866,21 +919,44 @@ function setTool(t) {
   if (S.cropping && t !== 'crop') cleanCrop();
   document.getElementById('hist-drawer').classList.remove('v');
   document.querySelectorAll('.tr,.mt').forEach(b => b.classList.toggle('on', b.dataset.tool === t));
-  ['ss-crop','ss-adj','ss-filter'].forEach(id => document.getElementById(id).classList.remove('on'));
-  document.getElementById('fb').classList.remove('v');
+  ['ss-crop','ss-adj','ss-filter'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('on');
+  });
+  
+  if (isMob()) {
+    ['fb', 'ma', 'fmb'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('v');
+    });
+  }
   document.getElementById('ba-badge').classList.remove('v');
 
   if (t === 'crop') {
-    document.getElementById('ss-crop').classList.add('on');
+    const ssc = document.getElementById('ss-crop');
+    if (ssc) ssc.classList.add('on');
+    if (isMob()) {
+      const fmb = document.getElementById('fmb');
+      if (fmb) fmb.classList.add('v');
+    }
     if (S.has) { enterCrop(); }
   }
   if (t === 'adjust') {
-    document.getElementById('ss-adj').classList.add('on');
+    const ssa = document.getElementById('ss-adj');
+    if (ssa) ssa.classList.add('on');
+    if (isMob()) {
+      const ma = document.getElementById('ma');
+      if (ma) ma.classList.add('v');
+    }
     if (S.has) { document.getElementById('ba-badge').classList.add('v'); }
   }
   if (t === 'filter') {
-    document.getElementById('ss-filter').classList.add('on');
-    if (isMob()) document.getElementById('fb').classList.add('v');
+    const ssf = document.getElementById('ss-filter');
+    if (ssf) ssf.classList.add('on');
+    if (isMob()) {
+      const fb = document.getElementById('fb');
+      if (fb) fb.classList.add('v');
+    }
     if (S.has) { document.getElementById('ba-badge').classList.add('v'); }
   }
   if (t === 'score') runAIScore();
@@ -1042,84 +1118,93 @@ document.getElementById('hist-head').addEventListener('click', () => document.ge
 
 document.getElementById('us-cam').addEventListener('click', e => { e.stopPropagation(); startCam(); });
 
-// ─── CAMERA LOGIC — PRO ───
+// ─── CAMERA LOGIC — BEAST MODE ───
 let camStream = null;
 let camFacing = 'user';
+let camFilter = FLAT[0];
+let liveReq = null;
 
 async function startCam() {
-  const wrap = document.getElementById('cam-wrap');
-  const video = document.getElementById('v-preview');
-  const msg = document.getElementById('cam-msg');
-  wrap.classList.add('v');
-  msg.textContent = "INITIALIZING PRO CAMERA...";
-  msg.style.display = 'block';
+  const wrap = document.getElementById('cam-wrap'), video = document.getElementById('v-preview'), msg = document.getElementById('cam-msg');
+  wrap.classList.add('v'); msg.textContent = "INITIALIZING PRO CAMERA..."; msg.style.display = 'block';
   
+  if (!document.getElementById('cam-fscr').innerHTML) buildCamFilters();
+
   try {
-    // Explicitly stop all current tracks before starting new ones
-    if (camStream) {
-      camStream.getTracks().forEach(track => track.stop());
-      camStream = null;
-      video.srcObject = null;
-    }
-    
-    // Tiny delay to ensure hardware is released
-    await new Promise(r => setTimeout(r, 150));
+    if (camStream) { camStream.getTracks().forEach(track => track.stop()); camStream = null; video.srcObject = null; }
+    if (liveReq) cancelAnimationFrame(liveReq);
 
     camStream = await navigator.mediaDevices.getUserMedia({ 
-      video: { 
-        facingMode: { ideal: camFacing },
-        width: { ideal: 1920 }, 
-        height: { ideal: 1080 } 
-      }, 
-      audio: false 
+      video: { facingMode: { ideal: camFacing }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false 
     });
     
-    video.srcObject = camStream;
-    // On some mobile browsers, video doesn't play automatically even with autoplay
-    await video.play(); 
-    
+    video.srcObject = camStream; await video.play(); 
     msg.style.display = 'none';
-    toast('Pro Cam Active', 'hi');
+    renderLive();
   } catch (err) {
-    console.error("Camera Error:", err);
-    msg.textContent = "CAMERA UNAVAILABLE OR PERMISSION DENIED";
+    console.error("Camera Error:", err); msg.textContent = "CAMERA UNAVAILABLE";
     setTimeout(() => { if(!camStream) stopCam(); }, 2500);
   }
 }
 
-function stopCam() {
-  if (camStream) {
-    camStream.getTracks().forEach(t => t.stop());
-    camStream = null;
-    const v = document.getElementById('v-preview');
-    if(v) v.srcObject = null;
+function renderLive() {
+  const video = document.getElementById('v-preview'), canvas = document.getElementById('cam-canvas');
+  if (!video || !video.videoWidth || !camStream) return;
+  
+  canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+  if (GL) {
+    GL.si(video);
+    GL.dr(camFilter, { intensity: 100 }, canvas.width, canvas.height);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(GL.glCanvas, 0, 0);
   }
+  liveReq = requestAnimationFrame(renderLive);
+}
+
+function buildCamFilters() {
+  const fscr = document.getElementById('cam-fscr'); fscr.innerHTML = '';
+  FLAT.forEach(f => {
+    const el = document.createElement('div'); el.className = 'cft' + (f.id === camFilter.id ? ' on' : '');
+    el.innerHTML = `<div class="cfw"><canvas id="ct-${f.id}" width="54" height="54"></canvas></div><div class="cfn">${f.name}</div>`;
+    el.addEventListener('click', () => {
+      camFilter = f;
+      document.querySelectorAll('.cft').forEach(x => x.classList.toggle('on', x === el));
+    });
+    fscr.appendChild(el);
+    const cv = document.getElementById('ct-'+f.id);
+    if(cv) renderThumb(f, cv); 
+  });
+}
+
+function stopCam() {
+  if (liveReq) cancelAnimationFrame(liveReq);
+  if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
   document.getElementById('cam-wrap').classList.remove('v');
+  document.getElementById('cam-msg').style.display = 'none';
+  document.getElementById('cam-msg').textContent = "";
 }
 
 function capture() {
-  const video = document.getElementById('v-preview');
-  if (!video || !video.videoWidth) return;
-  
-  const canvas = document.createElement('canvas');
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
+  const video = document.getElementById('v-preview'); if (!video || !video.videoWidth) return;
+  const canvas = document.createElement('canvas'); canvas.width = video.videoWidth; canvas.height = video.videoHeight;
   const ctx = canvas.getContext('2d');
   
-  // High quality capture
-  if (camFacing === 'user') {
-    ctx.translate(canvas.width, 0);
-    ctx.scale(-1, 1);
+  if (GL) {
+    GL.si(video);
+    GL.dr(camFilter, { intensity: 100 }, canvas.width, canvas.height);
+    ctx.drawImage(GL.glCanvas, 0, 0);
+  } else {
+    ctx.drawImage(video, 0, 0);
   }
-  ctx.drawImage(video, 0, 0);
   
   const img = new Image();
   img.onload = () => {
-    S.imgOrig = img;
-    S.imgOrigUrl = canvas.toDataURL('image/jpeg', 0.98);
+    S.imgOrig = img; S.imgOrigUrl = canvas.toDataURL('image/jpeg', 0.98); 
+    S.filter = camFilter; // Inherit filter
     stopCam();
-    S.has = true; S.filter = FLAT[0]; S.adj.intensity = 100;
-    renderGL(true); buildThumbs(); showEditorUI(); pushHist('Capture');
+    S.has = true; S.adj.intensity = 100;
+    renderGL(true); buildThumbs(); showEditorUI(); pushHist('Capture ('+camFilter.name+')');
+    toast('Captured with ' + camFilter.name, 'hi');
   };
   img.src = canvas.toDataURL('image/jpeg', 0.98);
 }
