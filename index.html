@@ -472,14 +472,14 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
       <button class="rfb" data-ratio="16:9" data-w="1920" data-h="1080"><span class="rfr">16:9</span><span class="rfn">Land</span></button>
       <button class="rfb" data-ratio="free" data-w="0" data-h="0"><span class="rfr">—</span><span class="rfn">Free</span></button>
     </div></div>
-    <div id="hp"><div class="htt">History</div><div id="hl2"></div></div>
+    <div id="hp"><div class="htt">History</div><div id="hl2-sidebar"></div></div>
   </div>
 
   <!-- History Drawer -->
   <button id="btn-hist-toggle">History <svg viewBox="0 0 16 16" fill="currentColor" style="width:10px;"><path d="M8 12l-4-4h8l-4 4z"/></svg></button>
   <div id="hist-drawer">
     <div class="hist-head" id="hist-head"><div class="hist-title">History</div><div style="font-size:.5rem;color:var(--mu2);">✕</div></div>
-    <div class="hist-list" id="hl2"></div>
+    <div class="hist-list" id="hl2-mobile"></div>
   </div>
 
   <!-- CAMERA WRAP — PRO UI -->
@@ -879,11 +879,15 @@ function showEditorUI() {
   document.getElementById('us').classList.add('g');
   document.getElementById('btn-back').classList.add('v');
   document.getElementById('btn-peek').classList.add('v');
-  ['btn-undo','btn-reset','btn-export'].forEach(id => document.getElementById(id).style.display = 'flex');
+  ['btn-undo','btn-reset','btn-export'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'flex';
+  });
   if (isMob()) {
     document.getElementById('bb').classList.add('v');
   } else {
-    document.getElementById('us-cam').style.display = 'none';
+    const usCam = document.getElementById('us-cam');
+    if (usCam) usCam.style.display = 'none';
   }
   document.getElementById('btn-hist-toggle').classList.add('v');
   setTool('crop');
@@ -899,16 +903,27 @@ document.getElementById('btn-back').addEventListener('click', () => {
   S.hist = []; S.histL = [];
   S.layer.destroyChildren(); S.layer.batchDraw();
   document.getElementById('us').classList.remove('g');
-  document.getElementById('us-cam').style.display = 'block';
+  const usCam = document.getElementById('us-cam');
+  if (usCam) usCam.style.display = 'block';
   document.getElementById('btn-back').classList.remove('v');
   document.getElementById('btn-peek').classList.remove('v');
   document.getElementById('ba-badge').classList.remove('v');
-  ['btn-undo','btn-reset','btn-export'].forEach(id => document.getElementById(id).style.display = 'none');
+  ['btn-undo','btn-reset','btn-export'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
   document.getElementById('bb').classList.remove('v');
   document.getElementById('fb').classList.remove('v');
-  ['ss-crop','ss-adj','ss-filter'].forEach(id => document.getElementById(id).classList.remove('on'));
-  document.getElementById('ss-crop').classList.add('on');
-  document.getElementById('hl2').innerHTML = '';
+  ['ss-crop','ss-adj','ss-filter'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('on');
+  });
+  const ssc = document.getElementById('ss-crop');
+  if (ssc) ssc.classList.add('on');
+  ['hl2', 'hl2-sidebar', 'hl2-mobile'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '';
+  });
   resetFA(); document.querySelectorAll('[data-id="none"]').forEach(el => el.classList.add('on'));
   ADEFS.forEach(({id}) => syncSlider(id, 0));
 });
@@ -1620,15 +1635,18 @@ function pushHist(label) {
   updateHistUI();
 }
 function updateHistUI() {
-  const list = document.getElementById('hl2'); if (!list) return;
-  list.innerHTML = '';
-  [...S.histL].reverse().forEach((lb, i) => {
-    const idx = S.histL.length - 1 - i;
-    const el = document.createElement('div');
-    el.className = 'hi2' + (idx === S.hist.length - 1 ? ' cur' : '');
-    el.innerHTML = `<div class="hd"></div><div class="hl">${lb}</div>`;
-    el.addEventListener('click', () => restoreHist(idx));
-    list.appendChild(el);
+  ['hl2', 'hl2-sidebar', 'hl2-mobile'].forEach(id => {
+    const list = document.getElementById(id);
+    if (!list) return;
+    list.innerHTML = '';
+    [...S.histL].reverse().forEach((lb, i) => {
+      const idx = S.histL.length - 1 - i;
+      const el = document.createElement('div');
+      el.className = 'hi2' + (idx === S.hist.length - 1 ? ' cur' : '');
+      el.innerHTML = `<div class="hd"></div><div class="hl">${lb}</div>`;
+      el.addEventListener('click', () => restoreHist(idx));
+      list.appendChild(el);
+    });
   });
 }
 function restoreHist(idx) {
