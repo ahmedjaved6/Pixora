@@ -381,7 +381,9 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 
   <!-- CANVAS -->
   <div id="cv">
-    <label id="us" for="fi">
+  <!-- Hidden file input -->
+  <input type="file" id="fi" accept="image/*" style="display:none;position:absolute;width:0;height:0;opacity:0;pointer-events:none;">
+  <label id="us" for="fi">
       <div class="uz">
         <div class="up" onclick="document.getElementById('fi').click()">+</div>
         <div class="ul">Upload</div>
@@ -1730,7 +1732,8 @@ document.getElementById('btn-dl-wb').addEventListener('click', () => dl('web', 7
 
 // ─── UPLOAD ───
 const fi = document.getElementById('fi');
-document.getElementById('us').addEventListener('click', () => { fi.value=''; });
+// Reset value so the same file can be re-uploaded; don't intercept the label click
+fi.addEventListener('click', () => { fi.value = ''; });
 fi.addEventListener('change', e => { const f = e.target.files[0]; if (f) loadImg(f); });
 const ca = document.getElementById('cv');
 ca.addEventListener('dragover', e => e.preventDefault());
