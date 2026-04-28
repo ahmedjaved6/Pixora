@@ -1,70 +1,65 @@
-// PIXORA Service Worker — Phase 1
-// Strategy: Cache-first for static assets, network-first for dynamic
+const CACHE = 'pixora-v4';
+const SHELL = ['./', './index.html', './manifest.json'];
+const CDN_HOSTS = ['cdn.jsdelivr.net', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 
-const CACHE_NAME = 'pixora-v3';
-const STATIC_ASSETS = [
-  './',
-  './index.html',
-  './manifest.json',
-];
-
-// Install — cache static assets
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
-    })
+// Install: pre-cache app shell
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE).then(c => c.addAll(SHELL))
   );
-  self.skipWaiting();
+  self.skipWaiting(); // activate immediately — no stale version on next visit
 });
 
-// Activate — clean old caches
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames
-          .filter((name) => name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
-      );
-    })
+// Activate: clear all old caches and claim all clients immediately
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-// Fetch — Network-First for same-origin
-self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
+// Fetch strategy:
+//   CDN assets  → cache-first (fast repeat loads, offline capable)
+//   App shell   → network-first, fall back to cache, then offline shell
+self.addEventListener('fetch', e => {
+  const { request } = e;
+  if (request.method !== 'GET') return;
 
-  // Same-origin — Network-First (ensures updates are seen)
-  if (url.origin === self.location.origin) {
-    event.respondWith(
-      fetch(event.request)
-        .then((fresh) => {
-          return caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, fresh.clone());
-            return fresh;
-          });
-        })
-        .catch(() => caches.match(event.request))
+  let url;
+  try { url = new URL(request.url); } catch { return; }
+
+  // CDN assets: cache-first
+  if (CDN_HOSTS.includes(url.hostname)) {
+    e.respondWith(
+      caches.match(request).then(cached => {
+        if (cached) return cached;
+        return fetch(request).then(res => {
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE).then(c => c.put(request, clone));
+          }
+          return res;
+        });
+      })
     );
     return;
   }
 
-  // CDN resources — Cache-First
-  if (
-    url.hostname.includes('cdn.jsdelivr.net') ||
-    url.hostname.includes('fonts.googleapis.com') ||
-    url.hostname.includes('fonts.gstatic.com')
-  ) {
-    event.respondWith(
-      caches.open(CACHE_NAME).then(async (cache) => {
-        const cached = await cache.match(event.request);
-        if (cached) return cached;
-        const fresh = await fetch(event.request);
-        cache.put(event.request, fresh.clone());
-        return fresh;
+  // Same-origin / app shell: network-first with offline fallback
+  e.respondWith(
+    fetch(request)
+      .then(res => {
+        if (res.ok) {
+          const clone = res.clone();
+          caches.open(CACHE).then(c => c.put(request, clone));
+        }
+        return res;
       })
-    );
-  }
+      .catch(() =>
+        caches.match(request).then(cached =>
+          cached || caches.match('./index.html')
+        )
+      )
+  );
 });

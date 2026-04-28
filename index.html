@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<meta name="theme-color" content="#0c0c0e"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="theme-color" content="#0c0c0e" media="(prefers-color-scheme: dark)"/>
+<meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="PIXORA"/>
@@ -11,7 +12,6 @@
 <title>PIXORA — AI Photo Editor</title>
 <script src="https://cdn.jsdelivr.net/npm/konva@9.3.6/konva.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -19,10 +19,13 @@
   --bg:#0c0c0e;--bg2:#0f0f12;--sf:#141418;--sf2:#1a1a1f;
   --bd:#1e1e24;--bd2:#28282f;--tx:#eaeaec;--mu:#3a3a44;--mu2:#5a5a68;
   --ac:#e8ff47;--acd:rgba(232,255,71,0.09);--red:#ff4455;--grn:#3dffa0;
+  --st:env(safe-area-inset-top,0px);
   --sb:env(safe-area-inset-bottom,0px);
+  --sl:env(safe-area-inset-left,0px);
+  --sr:env(safe-area-inset-right,0px);
   --th:52px;--sw:272px;--pw:244px;--bh:62px;--fh:106px;
 }
-html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);font-family:'DM Mono',monospace;}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','DM Mono',monospace;}
 
 /* SPLASH */
 #splash{position:fixed;inset:0;background:var(--bg);z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;transition:opacity .5s,visibility .5s;}
@@ -41,15 +44,15 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);font-
   grid-template-areas:"top""cv""bb";}
 
 /* TOPBAR */
-#top{grid-area:top;display:flex;align-items:center;justify-content:space-between;padding:0 .8rem;border-bottom:1px solid var(--bd);background:var(--bg);z-index:100;}
+#top{grid-area:top;display:flex;align-items:center;justify-content:space-between;padding:0 .8rem;padding-top:var(--st);padding-left:max(.8rem,var(--sl));padding-right:max(.8rem,var(--sr));border-bottom:1px solid var(--bd);background:var(--bg);z-index:100;}
 .tl,.tr{display:flex;align-items:center;gap:.4rem;}
 .wm{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:.12em;}
 .wm b{color:var(--ac);}
-.bk{display:none;align-items:center;gap:.3rem;padding:.26rem .55rem;border-radius:4px;border:1px solid var(--bd2);background:var(--sf);color:var(--mu2);font-family:'DM Mono',monospace;font-size:.55rem;letter-spacing:.08em;cursor:pointer;transition:all .15s;}
+.bk{display:none;align-items:center;gap:.3rem;padding:.5rem .9rem;border-radius:4px;border:1px solid var(--bd2);background:var(--sf);color:var(--mu2);font-family:'DM Mono',monospace;font-size:.55rem;letter-spacing:.08em;cursor:pointer;transition:transform .08s cubic-bezier(.4,0,.2,1),background .15s,color .15s;}
 .bk.v{display:flex;}
 .bk:hover{color:var(--tx);border-color:var(--bd2);}
 .bk svg,.ib svg{width:13px;height:13px;}
-.ib{width:32px;height:32px;border-radius:5px;border:1px solid var(--bd);background:var(--sf);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;color:var(--mu2);}
+.ib{width:44px;height:44px;border-radius:5px;border:1px solid var(--bd);background:var(--sf);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .08s cubic-bezier(.4,0,.2,1),background .15s,color .15s,border-color .15s;color:var(--mu2);position:relative;overflow:hidden;}
 .ib:hover{color:var(--tx);}
 .ib.p{background:var(--ac);border-color:var(--ac);color:#000;}
 .ib.p:hover{background:#d4eb30;}
@@ -124,6 +127,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);font-
   justify-content: space-around;
   padding: 0 .25rem;
   padding-bottom: var(--sb);
+  padding-left: max(.25rem, var(--sl));
+  padding-right: max(.25rem, var(--sr));
   z-index: 20;
 }
 #bb.v { display: flex; }
@@ -154,15 +159,16 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--tx);font-
 .an{font-size:.56rem;letter-spacing:.08em;color:var(--tx);text-transform:uppercase;}
 .av{font-size:.56rem;color:var(--ac);min-width:3.5ch;text-align:right;font-variant-numeric:tabular-nums;}
 input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:2px;background:var(--bd2);border-radius:1px;outline:none;cursor:pointer;}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--ac);cursor:pointer;border:2px solid var(--bg);box-shadow:0 0 0 1px var(--ac);transition:transform .1s;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--ac);cursor:pointer;border:2px solid var(--bg);box-shadow:0 0 0 1px var(--ac);transition:transform .1s,box-shadow .1s;}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15);box-shadow:0 0 0 5px rgba(232,255,71,.2);}
 input[type=range]::-webkit-slider-thumb:active{transform:scale(1.3);}
-input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--ac);cursor:pointer;border:2px solid var(--bg);}
+input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--ac);cursor:pointer;border:2px solid var(--bg);}
 
 /* CROP */
 #crb{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);display:none;gap:.4rem;z-index:20;}
 @media(max-width:767px){ #crb{bottom:calc(var(--bh) + var(--sb) + 65px);} }
 #crb.v{display:flex;}
-.cb{padding:.42rem .95rem;border-radius:4px;font-family:'DM Mono',monospace;font-size:.56rem;letter-spacing:.1em;cursor:pointer;transition:all .15s;}
+.cb{padding:.65rem 1.2rem;border-radius:4px;font-family:'DM Mono',monospace;font-size:.56rem;letter-spacing:.1em;cursor:pointer;transition:transform .08s cubic-bezier(.4,0,.2,1),background .15s,border-color .15s,color .15s;}
 .cb.ok{background:var(--ac);border:1px solid var(--ac);color:#000;font-weight:700;}
 .cb.ok:hover{background:#d4eb30;}
 .cb.no{background:var(--sf);border:1px solid var(--bd2);color:var(--mu2);}
@@ -322,7 +328,7 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 #hp{flex:1;overflow-y:auto;padding:.6rem;}
 /* SPLIT SLIDER */
 .sc-platforms{display:flex;gap:.4rem;margin:.5rem 0 .8rem;width:100%;max-width:300px;}
-.sc-plat{flex:1;padding:.3rem .1rem;border-radius:5px;border:1px solid var(--bd2);background:var(--sf);font-family:'DM Mono',monospace;font-size:.48rem;color:var(--mu2);cursor:pointer;transition:all .15s;letter-spacing:.04em;}
+.sc-plat{flex:1;padding:.5rem .4rem;border-radius:5px;border:1px solid var(--bd2);background:var(--sf);font-family:'DM Mono',monospace;font-size:.48rem;color:var(--mu2);cursor:pointer;transition:transform .08s cubic-bezier(.4,0,.2,1),background .15s,border-color .15s,color .15s;letter-spacing:.04em;}
 .sc-plat.on{border-color:var(--ac);background:var(--acd);color:var(--ac);}
 #split-wrap{position:absolute;inset:0;pointer-events:none;z-index:11;display:none;align-items:center;}
 #split-wrap.v{display:flex;}
@@ -332,6 +338,142 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 #split-label-orig,#split-label-edit{position:absolute;top:1rem;padding:.3rem .6rem;background:rgba(0,0,0,.6);border-radius:4px;font-size:.5rem;color:#fff;letter-spacing:.1em;text-transform:uppercase;pointer-events:none;}
 #split-label-orig{left:1rem;}
 #split-label-edit{right:1rem;}
+
+/* ── HISTORY ITEMS (previously missing) ── */
+.htt{font-size:.5rem;letter-spacing:.22em;text-transform:uppercase;color:var(--mu2);margin-bottom:.6rem;}
+.hi2{display:flex;align-items:center;gap:.5rem;padding:.38rem .5rem;border-radius:5px;font-size:.5rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mu2);cursor:pointer;transition:background .15s,color .15s;}
+.hi2:hover{background:rgba(255,255,255,.05);color:var(--tx);}
+.hi2.cur{color:var(--ac);background:rgba(232,255,71,.07);}
+.hd{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.5;}
+.hi2.cur .hd{opacity:1;}
+
+/* ── BUTTON PRESS STATES (Apple HIG — all interactive elements) ── */
+.ib:active,.bk:active,.cb:active,.eo:active,.bk:active,.sc-plat:active,.sb2:active,.rfb:active,.fmb:active{transform:scale(0.93);}
+.mt:active{transform:scale(0.88);}
+.tr:active{transform:scale(0.96);}
+.shutter-btn:active{transform:scale(.88);}
+
+/* ── RIPPLE (Android touch feedback) ── */
+.ib::after,.tr::after,.cb::after,.mt::after,.eo::after{
+  content:'';position:absolute;inset:0;border-radius:inherit;
+  background:radial-gradient(circle,rgba(255,255,255,.18) 0%,transparent 70%);
+  opacity:0;transform:scale(0);pointer-events:none;
+  transition:transform .4s cubic-bezier(.22,1,.36,1),opacity .4s;
+}
+.ib:active::after,.tr:active::after,.cb:active::after,.mt:active::after,.eo:active::after{
+  transform:scale(2.5);opacity:1;transition-duration:0s;
+}
+
+/* ── MODAL ENTRANCE ── */
+@keyframes modal-in{from{opacity:0;transform:scale(.94) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+#score-overlay.v,#ep.v{animation:modal-in .28s cubic-bezier(.22,1,.36,1) both;}
+
+/* ── MOBILE SHEET ENTRANCE ── */
+@keyframes sheet-up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+#fb.v,#ma.v,#fmb.v{animation:sheet-up .22s cubic-bezier(.22,1,.36,1) both;}
+
+/* ── FILTER SELECTION BOUNCE ── */
+@keyframes sel-bounce{0%{transform:scale(1)}40%{transform:scale(.90)}70%{transform:scale(1.06)}100%{transform:scale(1)}}
+.fcw.on-anim{animation:sel-bounce .3s cubic-bezier(.22,1,.36,1);}
+
+/* ── TOAST COUNTDOWN BAR ── */
+#toast{position:relative;}
+#toast-bar{position:absolute;bottom:0;left:0;height:2px;width:100%;background:var(--ac);transform-origin:left;border-radius:0 0 5px 5px;transform:scaleX(0);}
+#toast.s #toast-bar{animation:toast-drain 2.6s linear forwards;}
+@keyframes toast-drain{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+#toast.er #toast-bar{background:var(--red);}
+#toast.ok #toast-bar{background:var(--grn);}
+
+/* ── ERROR SHAKE ── */
+@keyframes shake{0%,100%{transform:translateX(-50%) translateY(0)}20%,60%{transform:translateX(calc(-50% + 7px)) translateY(0)}40%,80%{transform:translateX(calc(-50% - 7px)) translateY(0)}}
+#toast.er.s{animation:shake .36s cubic-bezier(.22,1,.36,1);}
+
+/* ── CANVAS CURSOR STATES ── */
+#kc{cursor:crosshair;}
+#kc.dragging{cursor:grabbing;}
+
+/* ── INSTALL BUTTON ── */
+#btn-install{display:none;font-size:.48rem;letter-spacing:.08em;background:var(--acd);border-color:rgba(232,255,71,.3);color:var(--ac);}
+#btn-install.v{display:flex;}
+
+/* ── REDO BUTTON ── */
+#btn-redo{display:none;}
+#btn-redo.v{display:flex;}
+
+/* ── INTERMEDIATE TABLET (600–767px) ── */
+@media(min-width:600px) and (max-width:767px){
+  :root{--sw:52px;}
+  .trl{display:none;}
+  .tr{justify-content:center;padding:.5rem;}
+}
+
+/* ── LANDSCAPE MOBILE ── */
+@media(max-height:500px) and (orientation:landscape){
+  :root{--bh:48px;}
+  .mt-l{display:none;}
+  #top{height:40px;}
+}
+
+/* ── TABLET+ (existing) already handles 768px — right panel ── */
+@media(min-width:768px){
+  #sd{padding-left:max(0px,var(--sl));}
+}
+
+/* ── WINDOWS CONTROLS OVERLAY ── */
+@media(display-mode:window-controls-overlay){
+  #top{
+    padding-left:max(.8rem,env(titlebar-area-x,0px));
+    padding-top:env(titlebar-area-height,0px);
+    -webkit-app-region:drag;
+    app-region:drag;
+  }
+  #top button,#top .ib,#top .bk{-webkit-app-region:no-drag;app-region:no-drag;}
+}
+
+/* ── POINTER-AWARE HOVER (only show hovers when device has a pointing device) ── */
+@media(hover:none){
+  .ib:hover,.tr:hover,.bk:hover,.cb.ok:hover,.cb.no:hover,.eo:hover,.eo.pri:hover,.sb2:hover,.fmb:hover,.sft:hover,.sc-close:hover,.ecx:hover{
+    background:unset;color:unset;border-color:unset;
+  }
+  .ib:hover{color:var(--mu2);background:var(--sf);border-color:var(--bd);}
+  .tr:hover{background:transparent;color:var(--mu2);}
+}
+
+/* ── WINDOWS HIGH CONTRAST ── */
+@media(forced-colors:active){
+  :root{--ac:Highlight;--tx:ButtonText;--bg:Canvas;--bd:ButtonBorder;--sf:Canvas;}
+  .ib,.tr,.cb{border:1px solid ButtonBorder;}
+  input[type=range]::-webkit-slider-thumb{forced-color-adjust:none;}
+}
+
+/* ── LIGHT MODE (macOS / Android / Windows light theme) ── */
+@media(prefers-color-scheme:light){
+  :root{
+    --bg:#f5f5f7;--bg2:#ffffff;--sf:#ffffff;--sf2:#f0f0f2;
+    --bd:#d8d8dc;--bd2:#c8c8cc;--tx:#1d1d1f;--mu:#aeaeb2;--mu2:#8e8e93;
+    --ac:#007aff;--acd:rgba(0,122,255,.09);--red:#ff3b30;--grn:#30d158;
+  }
+  #splash{background:#f5f5f7;}
+  .wm b,.swm b{color:var(--ac);}
+  #score-overlay,#ep{background:rgba(245,245,247,.97);}
+  #hist-drawer{background:rgba(245,245,247,.97);}
+  #fb,#ma,#fmb{background:rgba(245,245,247,.97);}
+  #cam-wrap{background:#000;}
+}
+
+/* ── REDUCED MOTION (accessibility) ── */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms!important;
+    transition-duration:.01ms!important;
+  }
+}
+
+/* ── HIGH CONTRAST ACCESSIBILITY ── */
+@media(prefers-contrast:more){
+  :root{--bd:#888;--mu2:#aaa;}
+  .ib,.tr,.cb{outline:1px solid var(--bd);}
+}
 </style>
 </head>
 <body>
@@ -347,8 +489,14 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
       <div class="wm">PIX<b>ORA</b></div>
     </div>
     <div class="tr">
-      <div class="ib" id="btn-undo" style="display:none" title="Undo">
+      <div class="ib" id="btn-undo" style="display:none" title="Undo (Ctrl+Z)">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6H10a3 3 0 0 1 0 6H7"/><path d="M4 6L2 4M4 6L2 8"/></svg>
+      </div>
+      <div class="ib" id="btn-redo" title="Redo (Ctrl+Shift+Z)">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 6H6a3 3 0 0 0 0 6h3"/><path d="M12 6l2-2M12 6l2 2"/></svg>
+      </div>
+      <div class="ib" id="btn-install" title="Install App">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 2v8M4 7l4 4 4-4M3 13h10"/></svg>
       </div>
       <div class="ib" id="btn-reset" style="display:none" title="Reset">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3l10 10M13 3L3 13"/></svg>
@@ -381,8 +529,6 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 
   <!-- CANVAS -->
   <div id="cv">
-  <!-- Hidden file input -->
-  <input type="file" id="fi" accept="image/*" style="display:none;position:absolute;width:0;height:0;opacity:0;pointer-events:none;">
   <label id="us" for="fi">
       <div class="uz">
         <div class="up" onclick="document.getElementById('fi').click()">+</div>
@@ -515,10 +661,11 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
     <button class="eo pri" id="btn-dl-ig"><span>Instagram Export</span><span class="es" id="ig-sp">1080 × 1080 · JPEG 92%</span></button>
     <button class="eo" id="btn-dl-or"><span>Original Quality</span><span class="es">Max resolution · JPEG 95%</span></button>
     <button class="eo" id="btn-dl-wb"><span>Web Optimized</span><span class="es">720px · JPEG 80%</span></button>
+    <button class="eo" id="btn-dl-png"><span>Lossless PNG</span><span class="es">Full resolution · PNG</span></button>
   </div>
   <button class="ecx" id="btn-ep-close">✕ Cancel</button>
 </div>
-<div id="toast"></div>
+<div id="toast"><div id="toast-bar"></div></div>
 
 <script>
 // ═══════════════════════════════════════════════════════════
@@ -613,7 +760,7 @@ const glCanvas = document.createElement('canvas');
 const gl = glCanvas.getContext('webgl', { preserveDrawingBuffer: true, antialias: false });
 
 const GL = (() => {
-  if (!gl) { console.warn('WebGL not available'); return null; }
+  if (!gl) { console.warn('WebGL not available'); setTimeout(() => toast('WebGL unavailable — try a different browser', 'er'), 2000); return null; }
 
   const VS = `attribute vec2 p,u;varying vec2 v;void main(){v=u;gl_Position=vec4(p,0,1);}`;
   const FS = `
@@ -764,13 +911,14 @@ const S = {
   stage: null, layer: null, kImg: null,
   // Crop
   cropR: null, cropTx: null, cropping: false,
-  // History
-  hist: [], histL: [],
-  // AI model
-  tfModel: null, tfLoading: false,
+  // History (fwd = redo stack)
+  hist: [], histL: [], histFwd: [], histFwdL: [],
   // UI
   splitPos: 0,
 };
+
+// ─── HAPTICS ───
+const haptic = (pattern = [30]) => { try { navigator.vibrate?.(pattern); } catch {} };
 const isMob = () => window.innerWidth < 768;
 
 // ─── SPLASH ───
@@ -779,8 +927,7 @@ setTimeout(() => document.getElementById('splash').classList.add('out'), 1700);
 // ─── INIT ───
 window.addEventListener('DOMContentLoaded', () => {
   initKonva(); buildAdjRows(); buildFilterUI(); bindFmtBtns();
-  // Preload TF model in background
-  loadAIModel();
+  handleShareTarget();
 });
 
 // ─── KONVA ───
@@ -851,7 +998,7 @@ function loadImg(file) {
           const tctx = tc.getContext('2d');
           tctx.drawImage(im, 0, 0, tc.width, tc.height);
           const nim = new Image();
-          await new Promise(res => { nim.onload = res; nim.src = tc.toDataURL('image/jpeg', 0.85); });
+          await new Promise((res, rej) => { nim.onload = res; nim.onerror = rej; nim.src = tc.toDataURL('image/jpeg', 0.85); });
           finalIm = nim;
         }
         
@@ -859,6 +1006,7 @@ function loadImg(file) {
         S.imgOrigUrl = finalIm.src;
         S.has = true; S.filter = FLAT[0];
         S.adj.intensity = 100;
+        S.splitPos = 0;
         renderGL(true);
         buildThumbs();
         showEditorUI();
@@ -922,7 +1070,7 @@ document.getElementById('btn-back').addEventListener('click', () => {
   });
   const ssc = document.getElementById('ss-crop');
   if (ssc) ssc.classList.add('on');
-  ['hl2', 'hl2-sidebar', 'hl2-mobile'].forEach(id => {
+  ['hl2-sidebar', 'hl2-mobile'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.innerHTML = '';
   });
@@ -979,7 +1127,7 @@ function setTool(t) {
   if (t === 'score') runAIScore();
 }
 document.querySelectorAll('.tr,.mt').forEach(btn => {
-  btn.addEventListener('click', () => { if (!S.has) return; setTool(btn.dataset.tool); });
+  btn.addEventListener('click', () => { if (!S.has) return; haptic([8]); setTool(btn.dataset.tool); });
 });
 
 // ─── BEFORE/AFTER PEEK ───
@@ -1133,7 +1281,8 @@ document.getElementById('hist-head').addEventListener('click', () => document.ge
   });
 });
 
-document.getElementById('us-cam').addEventListener('click', e => { e.stopPropagation(); startCam(); });
+const _usCamBtn = document.getElementById('us-cam');
+if (_usCamBtn) _usCamBtn.addEventListener('click', e => { e.stopPropagation(); startCam(); });
 
 // ─── CAMERA LOGIC — BEAST MODE ───
 let camStream = null;
@@ -1216,12 +1365,12 @@ function capture() {
   
   const img = new Image();
   img.onload = () => {
-    S.imgOrig = img; S.imgOrigUrl = canvas.toDataURL('image/jpeg', 0.98); 
-    S.filter = camFilter; // Inherit filter
+    S.imgOrig = img; S.imgOrigUrl = canvas.toDataURL('image/jpeg', 0.98);
+    S.filter = camFilter;
     stopCam();
-    S.has = true; S.adj.intensity = 100;
+    S.has = true; S.adj.intensity = 100; S.splitPos = 0;
     renderGL(true); buildThumbs(); showEditorUI(); pushHist('Capture ('+camFilter.name+')');
-    toast('Captured with ' + camFilter.name, 'hi');
+    toast('Captured with ' + camFilter.name, 'hi'); haptic([40]);
   };
   img.src = canvas.toDataURL('image/jpeg', 0.98);
 }
@@ -1306,9 +1455,13 @@ function buildNextThumb() {
 
 function pickFilter(f) {
   S.filter = f; resetFA();
-  document.querySelectorAll(`[data-id="${f.id}"]`).forEach(el => el.classList.add('on'));
+  document.querySelectorAll(`[data-id="${f.id}"]`).forEach(el => {
+    el.classList.add('on');
+    const fcw = el.querySelector('.fcw');
+    if (fcw) { fcw.classList.remove('on-anim'); void fcw.offsetWidth; fcw.classList.add('on-anim'); }
+  });
   renderGL(true);
-  if (f.id !== 'none') toast(f.name, 'hi');
+  if (f.id !== 'none') { toast(f.name, 'hi'); haptic([15]); }
   pushHist('Filter: ' + f.name);
 }
 function resetFA() { document.querySelectorAll('.ft,.sft').forEach(el => el.classList.remove('on')); }
@@ -1415,22 +1568,7 @@ function maybeLiveScore() {
   _scoreTimer = setTimeout(() => runAIScore(), 800);
 }
 
-// ─── AI SCORE (TF.js MobileNet NIMA proxy) ───
-async function loadAIModel() {
-  if (S.tfModel || S.tfLoading) return;
-  S.tfLoading = true;
-  try {
-    await tf.ready();
-    // Use MobileNet as NIMA proxy — fine-tuned aesthetic features
-    S.tfModel = await tf.loadLayersModel(
-      'https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_0.25_224/model.json'
-    );
-    S.tfLoading = false;
-  } catch(e) {
-    S.tfLoading = false;
-    console.warn('AI model load failed:', e);
-  }
-}
+// ─── AI SCORE ───
 
 async function runAIScore() {
   if (!S.has) return;
@@ -1527,21 +1665,6 @@ function calcPlatformScore(metrics, platform) {
   return Math.round(Math.min(9.8, Math.max(3.0, raw * 10)) * 10) / 10;
 }
 
-async function getTFScore(img) {
-  return tf.tidy(() => {
-    const tensor = tf.browser.fromPixels(img)
-      .resizeBilinear([224, 224])
-      .toFloat()
-      .div(127.5).sub(1)
-      .expandDims(0);
-    const pred = S.tfModel.predict(tensor);
-    const vals = pred.dataSync();
-    // Use top-class activation as aesthetic proxy (higher = more recognizable/aesthetic)
-    const topK = Array.from(vals).sort((a,b) => b - a).slice(0, 10);
-    const confidence = topK.reduce((s,v) => s + v, 0) / 10;
-    return Math.min(9.5, Math.max(4.0, confidence * 80));
-  });
-}
 
 function displayScore(score, metrics) {
   const arc = document.getElementById('sc-arc');
@@ -1634,10 +1757,13 @@ function pushHist(label) {
   S.hist.push({ adj: {...S.adj}, filter: S.filter });
   S.histL.push(label);
   if (S.hist.length > 30) { S.hist.shift(); S.histL.shift(); }
+  S.histFwd = []; S.histFwdL = [];
+  updateRedoBtn();
   updateHistUI();
+  maybeShowInstall();
 }
 function updateHistUI() {
-  ['hl2', 'hl2-sidebar', 'hl2-mobile'].forEach(id => {
+  ['hl2-sidebar', 'hl2-mobile'].forEach(id => {
     const list = document.getElementById(id);
     if (!list) return;
     list.innerHTML = '';
@@ -1651,19 +1777,39 @@ function updateHistUI() {
     });
   });
 }
+function updateRedoBtn() {
+  const rb = document.getElementById('btn-redo');
+  if (rb) rb.classList.toggle('v', S.histFwd.length > 0);
+}
 function restoreHist(idx) {
   if (idx < 0 || idx >= S.hist.length) return;
+  // Save current state to redo stack before going back
+  S.histFwd.push({ adj: {...S.adj}, filter: S.filter });
+  S.histFwdL.push('Redo');
   const snap = S.hist[idx];
   Object.assign(S.adj, snap.adj); S.filter = snap.filter;
   ADEFS.forEach(({id}) => syncSlider(id, S.adj[id]));
   resetFA(); document.querySelectorAll(`[data-id="${S.filter.id}"]`).forEach(el => el.classList.add('on'));
   renderGL(true);
   S.hist = S.hist.slice(0, idx + 1); S.histL = S.histL.slice(0, idx + 1);
-  updateHistUI();
+  updateRedoBtn(); updateHistUI();
+}
+function redoHist() {
+  if (!S.histFwd.length) return;
+  const snap = S.histFwd.pop(); S.histFwdL.pop();
+  S.hist.push({ adj: {...S.adj}, filter: S.filter }); S.histL.push('Redo');
+  Object.assign(S.adj, snap.adj); S.filter = snap.filter;
+  ADEFS.forEach(({id}) => syncSlider(id, S.adj[id]));
+  resetFA(); document.querySelectorAll(`[data-id="${S.filter.id}"]`).forEach(el => el.classList.add('on'));
+  renderGL(true); updateRedoBtn(); updateHistUI();
 }
 document.getElementById('btn-undo').addEventListener('click', () => {
   if (S.hist.length < 2) { toast('Nothing to undo', ''); return; }
-  restoreHist(S.hist.length - 2);
+  haptic([10]); restoreHist(S.hist.length - 2);
+});
+document.getElementById('btn-redo').addEventListener('click', () => {
+  if (!S.histFwd.length) { toast('Nothing to redo', ''); return; }
+  haptic([10]); redoHist();
 });
 document.getElementById('btn-reset').addEventListener('click', () => {
   if (!confirm('Reset all edits?')) return;
@@ -1714,39 +1860,179 @@ async function renderExp(fmt) {
 async function dl(quality, maxDim, label) {
   showLoad('EXPORTING');
   try {
+    const isPng = quality === 'png';
     const fmt = quality === 'web' ? {ratio:'free',w:maxDim,h:maxDim} : S.fmt;
-    const url = await renderExp(fmt);
-    const blob = await (await fetch(url)).blob();
-    const q = quality === 'orig' ? .95 : quality === 'web' ? .80 : .92;
-    const comp = await imageCompression(blob, { maxSizeMB: quality==='web'?.5:8, maxWidthOrHeight: quality==='web'?maxDim:(S.fmt.w||4096), useWebWorker:true, fileType:'image/jpeg', initialQuality:q });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(comp);
     const ts = new Date().toISOString().slice(0,10).replace(/-/g,'');
     const fs = S.filter.id !== 'none' ? '_' + S.filter.id : '';
-    a.download = `pixora_${ts}${fs}_${label}.jpg`; a.click(); URL.revokeObjectURL(a.href);
-    hideLoad(); document.getElementById('ep').classList.remove('v'); toast('Downloaded · ' + label, 'ok');
+    const filename = `pixora_${ts}${fs}_${label}.${isPng ? 'png' : 'jpg'}`;
+
+    let blob;
+    if (isPng) {
+      const url = await renderExp(S.fmt);
+      blob = await (await fetch(url)).blob();
+      // Re-render as PNG via canvas
+      const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+      const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+      c.getContext('2d').drawImage(img, 0, 0);
+      blob = await new Promise(res => c.toBlob(res, 'image/png'));
+    } else {
+      const url = await renderExp(fmt);
+      const raw = await (await fetch(url)).blob();
+      const q = quality === 'orig' ? .95 : quality === 'web' ? .80 : .92;
+      blob = await imageCompression(raw, { maxSizeMB: quality==='web'?.5:8, maxWidthOrHeight: quality==='web'?maxDim:(S.fmt.w||4096), useWebWorker:true, fileType:'image/jpeg', initialQuality:q });
+    }
+
+    // File System Access API (macOS/Windows desktop) — shows native Save As dialog
+    if (!isPng && 'showSaveFilePicker' in window) {
+      try {
+        const fh = await window.showSaveFilePicker({
+          suggestedName: filename,
+          types: [{ description: 'JPEG Image', accept: { 'image/jpeg': ['.jpg'] } }]
+        });
+        const ws = await fh.createWritable();
+        await ws.write(blob); await ws.close();
+        hideLoad(); document.getElementById('ep').classList.remove('v');
+        toast('Saved · ' + label, 'ok'); haptic([20, 30, 20]); return;
+      } catch (e) { if (e.name === 'AbortError') { hideLoad(); return; } }
+    }
+
+    // Web Share API (Android / iOS share sheet)
+    const file = new File([blob], filename, { type: isPng ? 'image/png' : 'image/jpeg' });
+    if (navigator.share && navigator.canShare?.({ files: [file] })) {
+      hideLoad(); document.getElementById('ep').classList.remove('v');
+      await navigator.share({ files: [file], title: 'PIXORA Edit' });
+      haptic([20, 30, 20]); return;
+    }
+
+    // Fallback: anchor download
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = filename; a.click(); URL.revokeObjectURL(a.href);
+    hideLoad(); document.getElementById('ep').classList.remove('v');
+    toast('Downloaded · ' + label, 'ok'); haptic([20, 30, 20]);
   } catch(e) { hideLoad(); toast('Export failed: ' + e.message, 'er'); }
 }
 document.getElementById('btn-dl-ig').addEventListener('click', () => dl('ig', 1080, 'instagram'));
 document.getElementById('btn-dl-or').addEventListener('click', () => dl('orig', 4096, 'original'));
 document.getElementById('btn-dl-wb').addEventListener('click', () => dl('web', 720, 'web'));
+document.getElementById('btn-dl-png').addEventListener('click', () => dl('png', 4096, 'lossless'));
 
 // ─── UPLOAD ───
 const fi = document.getElementById('fi');
-// Reset value so the same file can be re-uploaded; don't intercept the label click
 fi.addEventListener('click', () => { fi.value = ''; });
 fi.addEventListener('change', e => { const f = e.target.files[0]; if (f) loadImg(f); });
-const ca = document.getElementById('cv');
-ca.addEventListener('dragover', e => e.preventDefault());
-ca.addEventListener('drop', e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) loadImg(f); });
+// Full-document drag-drop: macOS Finder, Windows Explorer
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop', e => {
+  e.preventDefault();
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) loadImg(f);
+});
+
+// ─── SHARE TARGET (Android share sheet → open shared image) ───
+function handleShareTarget() {
+  const sp = new URLSearchParams(location.search);
+  if (sp.has('share_url')) {
+    fetch(sp.get('share_url'))
+      .then(r => r.blob())
+      .then(b => loadImg(new File([b], 'shared.jpg', { type: b.type })))
+      .catch(() => toast('Could not load shared image', 'er'));
+  }
+  if (sp.has('action') && sp.get('action') === 'camera') {
+    setTimeout(() => startCam(), 1800);
+  }
+}
+
+// ─── ANDROID BACK BUTTON — close open panels before exiting PWA ───
+const _panels = ['score-overlay', 'ep', 'hist-drawer', 'cam-wrap'];
+function pushPanelState() { history.pushState({ pixora: true }, ''); }
+_panels.forEach(id => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const orig = el.classList.add.bind(el.classList);
+  // Intercept classList.add('v') to push history state
+  const observer = new MutationObserver(() => {
+    if (el.classList.contains('v')) history.pushState({ panel: id }, '');
+  });
+  observer.observe(el, { attributes: true, attributeFilter: ['class'] });
+});
+window.addEventListener('popstate', () => {
+  const open = _panels.find(id => document.getElementById(id)?.classList.contains('v'));
+  if (open) { document.getElementById(open).classList.remove('v'); }
+});
+
+// ─── VISUAL VIEWPORT (Android keyboard pushes layout) ───
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', () => {
+    document.getElementById('app').style.height = window.visualViewport.height + 'px';
+  });
+}
+
+// ─── PWA INSTALL PROMPT (Android / Windows / macOS Chrome/Edge) ───
+let _deferredInstall = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _deferredInstall = e;
+});
+document.getElementById('btn-install').addEventListener('click', async () => {
+  if (!_deferredInstall) return;
+  _deferredInstall.prompt();
+  const { outcome } = await _deferredInstall.userChoice;
+  if (outcome === 'accepted') {
+    document.getElementById('btn-install').classList.remove('v');
+    haptic([20, 20, 20]);
+    toast('PIXORA installed!', 'ok');
+  }
+  _deferredInstall = null;
+});
+function maybeShowInstall() {
+  if (_deferredInstall && !localStorage.getItem('pwa-installed')) {
+    document.getElementById('btn-install').classList.add('v');
+  }
+}
+window.addEventListener('appinstalled', () => {
+  localStorage.setItem('pwa-installed', '1');
+  document.getElementById('btn-install').classList.remove('v');
+});
+
+// ─── KEYBOARD SHORTCUTS ───
+document.addEventListener('keydown', e => {
+  const cmd = e.metaKey || e.ctrlKey;
+  const k = e.key.toLowerCase();
+  // Open file
+  if (cmd && k === 'o') { e.preventDefault(); fi.click(); return; }
+  if (!S.has) return;
+  // Undo / Redo
+  if (cmd && !e.shiftKey && k === 'z') { e.preventDefault(); haptic([10]); if (S.hist.length >= 2) restoreHist(S.hist.length - 2); else toast('Nothing to undo', ''); return; }
+  if (cmd && e.shiftKey && k === 'z') { e.preventDefault(); haptic([10]); if (S.histFwd.length) redoHist(); else toast('Nothing to redo', ''); return; }
+  // Export
+  if (cmd && k === 's') { e.preventDefault(); openExp(); return; }
+  // Close modal
+  if (k === 'escape') {
+    const open = _panels.find(id => document.getElementById(id)?.classList.contains('v'));
+    if (open) { document.getElementById(open).classList.remove('v'); if (open === 'score-overlay') setTool('crop'); }
+    return;
+  }
+  // Before/after peek
+  if (k === 'b') { startPeek(); document.addEventListener('keyup', function _up(ev) { if (ev.key.toLowerCase() === 'b') { endPeek(); document.removeEventListener('keyup', _up); } }); return; }
+  // Tool shortcuts (no modifier)
+  if (!cmd) {
+    if (k === 'c') { setTool('crop'); return; }
+    if (k === 'a') { setTool('adjust'); return; }
+    if (k === 'f') { setTool('filter'); return; }
+  }
+});
 
 // ─── UTILS ───
 let tt = null;
-function toast(msg, type='') { 
-  const el=document.getElementById('toast'); 
-  if(!el) return; 
-  el.textContent=msg; el.className='s '+(type||''); 
-  if(tt) clearTimeout(tt); 
-  tt = setTimeout(()=>el.className='', 2600); 
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  if (!el) return;
+  el.innerHTML = msg + '<div id="toast-bar"></div>';
+  el.className = 's ' + (type || '');
+  if (tt) clearTimeout(tt);
+  tt = setTimeout(() => el.className = '', 2600);
+  if (type === 'er') haptic([80, 40, 80]);
+  if (type === 'ok') haptic([20, 30, 20]);
 }
 function showLoad(m='PROCESSING') { document.getElementById('lm').textContent=m; document.getElementById('ld').classList.add('v'); }
 function hideLoad() { document.getElementById('ld').classList.remove('v'); }
